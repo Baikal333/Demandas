@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Libro de Visitas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Literata:opsz,wght@7..72,500;7..72,600&display=swap">
+<style>
+/* Layout: barra superior con pestañas, contenido en una columna ancha; fichas en diálogos. */
+:root{
+  --bg:#f5f6f4; --surface:#ffffff; --sunken:#eceee9; --line:#d6dad2;
+  --fg:#1d2420; --muted:#5d6760; --accent:#1f5c4a; --accent-fg:#ffffff; --accent-soft:#dfece6;
+  --warn:#a5640c; --warn-soft:#f7ead4; --bad:#a8322a; --bad-soft:#f6dedb; --good:#2c7a4b; --good-soft:#dcefe2;
+  --f-display:"Literata",Georgia,"Times New Roman",serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141917; --surface:#1b211e; --sunken:#111513; --line:#2f3833;
+  --fg:#e4e9e5; --muted:#9aa59e; --accent:#6fbf9f; --accent-fg:#0e1a15; --accent-soft:#213a30;
+  --warn:#e0a84f; --warn-soft:#3a2d17; --bad:#ec8b82; --bad-soft:#3d1f1c; --good:#7fcf9b; --good-soft:#1d3526; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141917; --surface:#1b211e; --sunken:#111513; --line:#2f3833;
+  --fg:#e4e9e5; --muted:#9aa59e; --accent:#6fbf9f; --accent-fg:#0e1a15; --accent-soft:#213a30;
+  --warn:#e0a84f; --warn-soft:#3a2d17; --bad:#ec8b82; --bad-soft:#3d1f1c; --good:#7fcf9b; --good-soft:#1d3526; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body)}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;text-wrap:balance}
+h2{font-size:1.45rem} h3{font-size:1.1rem}
+.mono,.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.num{text-align:right;white-space:nowrap}
+.muted{color:var(--muted)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+header.top .wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-block:10px}
+.brand{font-family:var(--f-display);font-size:1.25rem;font-weight:600;letter-spacing:.01em}
+.brand small{display:block;font:500 .7rem var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+nav.tabs{display:flex;gap:4px;flex-wrap:wrap}
+nav.tabs button{background:none;border:0;padding:8px 12px;border-radius:var(--r);font:500 .95rem var(--f-body);color:var(--muted);cursor:pointer}
+nav.tabs button[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+nav.tabs button:hover{color:var(--fg)}
+.badge{display:inline-block;min-width:1.4em;padding:0 .4em;border-radius:99px;background:var(--bad);color:var(--surface);font-size:.75rem;text-align:center;margin-left:4px}
+main{padding-block:24px 60px}
+section.view{display:grid;gap:20px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.kpi .label{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.kpi .value{font:500 1.5rem var(--f-mono);font-variant-numeric:tabular-nums;margin-top:4px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0}
+.panel>h3{margin-bottom:10px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+tbody tr.click{cursor:pointer}
+tbody tr.click:hover{background:var(--sunken)}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:.78rem;font-weight:500;white-space:nowrap;background:var(--sunken);color:var(--muted)}
+.pill.good{background:var(--good-soft);color:var(--good)} .pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.acc{background:var(--accent-soft);color:var(--accent)}
+.empty{padding:18px;color:var(--muted);text-align:center}
+button,.btn{font:500 .92rem var(--f-body);border-radius:var(--r);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:7px 14px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+button.danger{color:var(--bad)}
+button.small{padding:3px 9px;font-size:.82rem}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+label{display:grid;gap:4px;font-size:.82rem;color:var(--muted);font-weight:500;min-width:0}
+input,select,textarea{font:400 .95rem var(--f-body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:7px 9px;width:100%;min-width:0}
+textarea{min-height:76px;resize:vertical}
+input[type=checkbox]{width:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px}
+.full{grid-column:1/-1}
+input.search{max-width:340px}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);padding:0;width:min(920px,calc(100vw - 24px));max-height:calc(100vh - 24px)}
+dialog::backdrop{background:rgba(10,20,15,.45)}
+dialog .dh{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:2}
+dialog .db{padding:18px;display:grid;gap:18px}
+dialog .df{display:flex;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--line);background:var(--surface);position:sticky;bottom:0}
+.sum{display:grid;grid-template-columns:auto auto;justify-content:end;gap:4px 24px}
+.sum .t{font-weight:600;border-top:1px solid var(--line);padding-top:4px}
+.toasts{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:grid;gap:8px;z-index:50;max-width:min(380px,calc(100vw - 32px))}
+.toast{background:var(--fg);color:var(--bg);padding:12px 14px;border-radius:var(--r);box-shadow:0 6px 20px rgba(0,0,0,.2);display:flex;gap:10px;align-items:start}
+.toast b{display:block}
+.toast button{background:transparent;color:inherit;border-color:currentColor}
+.note{background:var(--warn-soft);color:var(--fg);border-radius:var(--r);padding:10px 14px;font-size:.9rem}
+#print-area{display:none}
+/* Factura */
+.inv{font:13px/1.45 var(--f-body);color:#111;background:#fff;padding:12mm 14mm;max-width:210mm;margin:0 auto}
+.inv h1{font:600 22px var(--f-display);letter-spacing:.02em}
+.inv .ih{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #1f5c4a;padding-bottom:12px;margin-bottom:16px}
+.inv .parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:18px}
+.inv .lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#555;margin-bottom:2px}
+.inv table th{color:#555;border-bottom:1px solid #999}
+.inv table td{border-bottom:1px solid #ddd}
+.inv .sum{margin-top:14px}
+.inv .foot{margin-top:28px;font-size:11px;color:#444;border-top:1px solid #ccc;padding-top:8px}
+@media print{
+  body{background:#fff}
+  body>*:not(#print-area){display:none!important}
+  #print-area{display:block!important}
+  .inv{padding:0;max-width:none}
+  @page{size:A4;margin:14mm}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand">Libro de Visitas<small>Despacho · uso profesional</small></div>
+  <nav class="tabs" id="tabs">
+    <button data-v="inicio">Inicio</button>
+    <button data-v="visitas">Visitas</button>
+    <button data-v="avisos">Avisos <span id="badge-avisos"></span></button>
+    <button data-v="facturas">Facturas</button>
+    <button data-v="ajustes">Ajustes</button>
+  </nav>
+  <span class="spacer"></span>
+  <button class="primary" id="btn-nueva">+ Nueva visita</button>
+</div></header>
+
+<main class="wrap">
+  <section class="view" id="v-inicio"></section>
+  <section class="view" id="v-visitas" hidden></section>
+  <section class="view" id="v-avisos" hidden></section>
+  <section class="view" id="v-facturas" hidden></section>
+  <section class="view" id="v-ajustes" hidden></section>
+</main>
+
+<dialog id="dlg-visita"></dialog>
+<dialog id="dlg-factura"></dialog>
+<dialog id="dlg-ver"></dialog>
+<div class="toasts" id="toasts"></div>
+<div id="print-area"></div>
+
+<script>
+"use strict";
+/* ---------- Datos ---------- */
+const KEY = "libro-visitas-v1";
+const DEF_AJUSTES = {nombre:"", nif:"", colegiado:"", direccion:"", telefono:"", email:"", iban:"",
+  serie:"F", siguiente:1, ivaPct:21, irpfPct:15, pie:"", ultimaCopia:null};
+let S = load();
+function load(){
+  try{ const d = JSON.parse(localStorage.getItem(KEY)); if(d && d.visitas) { d.ajustes = Object.assign({}, DEF_AJUSTES, d.ajustes); d.facturas ||= []; return d; } }catch(e){}
+  return {visitas:[], facturas:[], ajustes:{...DEF_AJUSTES}};
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch(e){ toast("No se ha podido guardar", "El navegador bloquea el almacenamiento. Exporta una copia desde Ajustes."); }
+}
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const r2 = n => Math.round((Number(n)||0)*100)/100;
+const eur = n => (Number(n)||0).toLocaleString("es-ES",{style:"currency",currency:"EUR"});
+const pad = n => String(n).padStart(2,"0");
+const localDT = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const today = () => localDT(new Date()).slice(0,10);
+const fDate = s => { if(!s) return "—"; const d = new Date(s.length===10 ? s+"T00:00" : s); return isNaN(d) ? s : d.toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"}); };
+const fDT = s => { if(!s) return "—"; const d = new Date(s); return isNaN(d) ? s : d.toLocaleString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}); };
+const $ = (sel, el=document) => el.querySelector(sel);
+
+/* ---------- Cálculos ---------- */
+const pagado = v => r2((v.pagos||[]).reduce((a,p)=>a+(Number(p.importe)||0),0));
+const presupuestoTotal = v => r2((Number(v.presupuesto)||0) * (1 + S.ajustes.ivaPct/100));
+const pendiente = v => r2(presupuestoTotal(v) - pagado(v));
+function calcFactura(lineas, ivaPct, irpfPct, conIrpf, aCuenta){
+  const base = r2(lineas.reduce((a,l)=>a+(Number(l.importe)||0),0));
+  const iva = r2(base*ivaPct/100);
+  const irpf = conIrpf ? r2(base*irpfPct/100) : 0;
+  const total = r2(base + iva - irpf);
+  const ac = r2(aCuenta);
+  return {base, iva, irpf, total, aCuenta:ac, aPagar:r2(total-ac)};
+}
+const ESTADOS = {"pendiente":"warn","en curso":"acc","facturado":"good","cerrado":""};
+const pillEstado = e => `<span class="pill ${ESTADOS[e]??""}">${esc(e)}</span>`;
+function todosAvisos(){
+  const out=[]; S.visitas.forEach(v => (v.avisos||[]).forEach(a => out.push({a, v})));
+  return out.sort((x,y)=> (x.a.fecha||"").localeCompare(y.a.fecha||""));
+}
+const vencido = a => !a.hecho && a.fecha && new Date(a.fecha) <= new Date();
+
+/* ---------- Navegación ---------- */
+let vista = "inicio";
+function ir(v){
+  vista = v;
+  document.querySelectorAll("#tabs button").forEach(b => { if(b.dataset.v===v) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  document.querySelectorAll("section.view").forEach(s => s.hidden = s.id !== "v-"+v);
+  render();
+}
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("button"); if(b) ir(b.dataset.v); });
+$("#btn-nueva").onclick = () => abrirVisita(null);
+
+function render(){
+  const n = todosAvisos().filter(x=>vencido(x.a)).length;
+  $("#badge-avisos").innerHTML = n ? `<span class="badge">${n}</span>` : "";
+  ({inicio:rInicio, visitas:rVisitas, avisos:rAvisos, facturas:rFacturas, ajustes:rAjustes})[vista]();
+}
+
+/* ---------- Inicio ---------- */
+function rInicio(){
+  const now = new Date(), mes = localDT(now).slice(0,7);
+  const vMes = S.visitas.filter(v => (v.fecha||"").startsWith(mes)).length;
+  const pend = r2(S.visitas.filter(v=>v.estado!=="cerrado" && v.estado!=="facturado").reduce((a,v)=>a+Math.max(0,pendiente(v)),0));
+  const cobradoMes = r2(S.visitas.flatMap(v=>v.pagos||[]).filter(p=>(p.fecha||"").startsWith(mes)).reduce((a,p)=>a+(Number(p.importe)||0),0));
+  const factPend = r2(S.facturas.filter(f=>f.estado==="emitida").reduce((a,f)=>a+f.aPagar,0));
+  const av = todosAvisos().filter(x=>!x.a.hecho);
+  const limite = new Date(now.getTime()+7*864e5);
+  const proxAv = av.filter(x=> new Date(x.a.fecha) <= limite);
+  const proxVis = S.visitas.filter(v=>v.fecha && new Date(v.fecha) >= new Date(today()+"T00:00")).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,8);
+  const ultimas = [...S.visitas].sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,8);
+  const copia = S.ajustes.ultimaCopia ? Math.floor((now - new Date(S.ajustes.ultimaCopia))/864e5) : null;
+  $("#v-inicio").innerHTML = `
+    ${S.visitas.length && (copia===null || copia>=7) ? `<div class="note">Los datos se guardan solo en este navegador. ${copia===null?"Aún no has hecho ninguna copia de seguridad.":`Tu última copia tiene ${copia} días.`} <button class="small" onclick="exportar()">Descargar copia ahora</button></div>`:""}
+    <div class="kpis">
+      <div class="kpi"><div class="label">Visitas este mes</div><div class="value">${vMes}</div></div>
+      <div class="kpi"><div class="label">Cobrado este mes</div><div class="value">${eur(cobradoMes)}</div></div>
+      <div class="kpi"><div class="label">Pendiente de presupuestos</div><div class="value">${eur(pend)}</div></div>
+      <div class="kpi"><div class="label">Facturas sin cobrar</div><div class="value">${eur(factPend)}</div></div>
+    </div>
+    <div class="cols">
+      <div class="panel"><h3>Avisos de los próximos 7 días</h3>${tablaAvisos(proxAv, true)}</div>
+      <div class="panel"><h3>Próximas citas</h3>${tablaVisitas(proxVis, true) }</div>
+    </div>
+    <div class="panel"><h3>Últimas visitas</h3>${tablaVisitas(ultimas)}</div>`;
+}
+
+/* ---------- Visitas ---------- */
+let filtro = "", filtroEstado = "";
+function rVisitas(){
+  const q = filtro.toLowerCase();
+  const list = S.visitas.filter(v => (!filtroEstado || v.estado===filtroEstado) &&
+    (!q || [v.nombre,v.telefono,v.asunto,v.observaciones,v.nif,v.email].join(" ").toLowerCase().includes(q)))
+    .sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
+  $("#v-visitas").innerHTML = `
+    <div class="row"><h2>Visitas</h2><span class="spacer"></span>
+      <input class="search" id="q" type="search" placeholder="Buscar nombre, teléfono, asunto…" value="${esc(filtro)}">
+      <select id="qe" style="width:auto"><option value="">Todos los estados</option>${Object.keys(ESTADOS).map(e=>`<option ${e===filtroEstado?"selected":""}>${e}</option>`).join("")}</select>
+      <button onclick="exportarCSV()">Exportar CSV</button></div>
+    <div class="panel">${tablaVisitas(list)}</div>`;
+  const q1 = $("#q"); q1.oninput = () => { filtro = q1.value; rVisitas(); const n=$("#q"); n.focus(); n.setSelectionRange(n.value.length,n.value.length); };
+  $("#qe").onchange = e => { filtroEstado = e.target.value; rVisitas(); };
+}
+function tablaVisitas(list, corta){
+  if(!list.length) return `<div class="empty">${S.visitas.length ? "No hay visitas que mostrar." : "Aún no hay visitas. Pulsa «+ Nueva visita» para apuntar la primera."}</div>`;
+  return `<div class="tbl"><table><thead><tr><th>Fecha</th><th>Cliente</th>${corta?"":"<th>Teléfono</th>"}<th>Asunto</th>${corta?"":`<th class="num">Presupuesto</th><th class="num">A cuenta</th><th class="num">Pendiente</th>`}<th>Estado</th></tr></thead><tbody>
+  ${list.map(v=>`<tr class="click" onclick="abrirVisita('${v.id}')"><td class="mono">${fDT(v.fecha)}</td><td><b>${esc(v.nombre)}</b></td>${corta?"":`<td class="mono">${esc(v.telefono)}</td>`}<td>${esc((v.asunto||"").slice(0,90))}</td>
+  ${corta?"":`<td class="num">${v.presupuesto?eur(presupuestoTotal(v)):"—"}</td><td class="num">${eur(pagado(v))}</td><td class="num">${v.presupuesto?eur(pendiente(v)):"—"}</td>`}<td>${pillEstado(v.estado)}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+/* ---------- Ficha de visita ---------- */
+let edit = null;
+function abrirVisita(id){
+  const v = id ? S.visitas.find(x=>x.id===id) : null;
+  edit = v ? structuredClone(v) : {id:uid(), nombre:"", telefono:"", email:"", nif:"", direccion:"", fecha:localDT(new Date()), asunto:"", observaciones:"", presupuesto:"", estado:"pendiente", pagos:[], avisos:[], nuevo:true};
+  pintarVisita(); $("#dlg-visita").showModal();
+}
+function campo(k, lab, type="text", extra=""){ return `<label ${extra}>${lab}<input id="f-${k}" data-k="${k}" type="${type}" value="${esc(edit[k])}" ${type==="number"?'step="0.01" min="0"':""}></label>`; }
+function pintarVisita(){
+  const e = edit, d = $("#dlg-visita");
+  const fact = S.facturas.filter(f=>f.visitaId===e.id);
+  d.innerHTML = `
+  <div class="dh"><h3>${e.nuevo?"Nueva visita":esc(e.nombre||"Visita")}</h3><span class="spacer"></span>${pillEstado(e.estado)}<button onclick="cerrarDlg('dlg-visita')">Cerrar</button></div>
+  <div class="db">
+    <div class="grid">
+      ${campo("nombre","Nombre y apellidos *","text",'class="full"')}
+      ${campo("telefono","Teléfono","tel")}
+      ${campo("email","Email","email")}
+      ${campo("fecha","Fecha y hora de la visita *","datetime-local")}
+      <label>Estado<select id="f-estado" data-k="estado">${Object.keys(ESTADOS).map(s=>`<option ${s===e.estado?"selected":""}>${s}</option>`).join("")}</select></label>
+      <label class="full">Resumen del asunto<textarea id="f-asunto" data-k="asunto">${esc(e.asunto)}</textarea></label>
+      <label class="full">Observaciones<textarea id="f-observaciones" data-k="observaciones">${esc(e.observaciones)}</textarea></label>
+      ${campo("presupuesto",`Presupuesto (base, sin IVA) €`,"number")}
+      <label>Total con IVA ${S.ajustes.ivaPct}%<input id="f-ptotal" disabled value="${eur(presupuestoTotal(e))}"></label>
+      ${campo("nif","NIF / CIF (para facturar)")}
+      ${campo("direccion","Dirección fiscal (para facturar)")}
+    </div>
+
+    <div class="panel"><div class="row"><h3>Pagos a cuenta</h3><span class="spacer"></span>
+      <span class="muted">Cobrado <b class="mono">${eur(pagado(e))}</b>${e.presupuesto?` · Pendiente <b class="mono">${eur(pendiente(e))}</b>`:""}</span></div>
+      ${e.pagos.length?`<div class="tbl"><table><thead><tr><th>Fecha</th><th>Forma de pago</th><th>Concepto</th><th class="num">Importe</th><th></th></tr></thead><tbody>
+      ${e.pagos.map(p=>`<tr><td class="mono">${fDate(p.fecha)}</td><td>${esc(p.metodo)}</td><td>${esc(p.nota)}</td><td class="num">${eur(p.importe)}</td><td><button class="small danger" onclick="quitar('pagos','${p.id}')">Quitar</button></td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">Sin pagos registrados.</p>`}
+      <div class="grid" style="margin-top:10px">
+        <label>Fecha<input id="p-fecha" type="date" value="${today()}"></label>
+        <label>Importe €<input id="p-importe" type="number" step="0.01" min="0"></label>
+        <label>Forma de pago<select id="p-metodo"><option>Transferencia</option><option>Efectivo</option><option>Tarjeta</option><option>Bizum</option><option>Otro</option></select></label>
+        <label>Concepto<input id="p-nota" placeholder="Provisión de fondos"></label>
+      </div>
+      <div class="row" style="margin-top:8px"><button onclick="addPago()">Añadir pago</button></div>
+    </div>
+
+    <div class="panel"><h3>Avisos</h3>
+      ${e.avisos.length?`<div class="tbl"><table><thead><tr><th>Cuándo</th><th>Aviso</th><th></th></tr></thead><tbody>
+      ${[...e.avisos].sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(a=>`<tr><td class="mono">${fDT(a.fecha)} ${a.hecho?'<span class="pill good">hecho</span>':vencido(a)?'<span class="pill bad">vencido</span>':""}</td><td>${esc(a.texto)}</td>
+      <td class="row" style="justify-content:end"><button class="small" onclick="toggleHecho('${a.id}')">${a.hecho?"Reabrir":"Hecho"}</button><button class="small" onclick="icsAviso('${a.id}')">Calendario</button><button class="small danger" onclick="quitar('avisos','${a.id}')">Quitar</button></td></tr>`).join("")}</tbody></table></div>`:`<p class="muted">Sin avisos programados.</p>`}
+      <div class="grid" style="margin-top:10px">
+        <label>Fecha y hora<input id="a-fecha" type="datetime-local"></label>
+        <label class="full">Texto del aviso<input id="a-texto" placeholder="Llamar para pedir documentación, vence plazo…"></label>
+      </div>
+      <div class="row" style="margin-top:8px"><button onclick="addAviso()">Añadir aviso</button>
+        <span class="muted">Rápido:</span><button class="small" onclick="presetAviso(1)">Mañana</button><button class="small" onclick="presetAviso(7)">1 semana</button><button class="small" onclick="presetAviso(15)">15 días</button><button class="small" onclick="presetAviso(30)">1 mes</button></div>
+    </div>
+
+    ${fact.length?`<div class="panel"><h3>Facturas de esta visita</h3><div class="tbl"><table><tbody>${fact.map(f=>`<tr class="click" onclick="verFactura('${f.id}')"><td class="mono">${esc(f.numero)}</td><td class="mono">${fDate(f.fecha)}</td><td class="num">${eur(f.total)}</td><td>${pillFact(f)}</td></tr>`).join("")}</tbody></table></div></div>`:""}
+  </div>
+  <div class="df">
+    <button class="primary" onclick="guardarVisita()">Guardar</button>
+    <button onclick="guardarVisita(true)">Guardar y facturar</button>
+    <span class="spacer"></span>
+    ${e.nuevo?"":`<button class="danger" id="btn-borrar" onclick="borrarVisita()">Eliminar visita</button>`}
+  </div>`;
+  d.querySelectorAll("[data-k]").forEach(inp => inp.addEventListener("input", () => {
+    edit[inp.dataset.k] = inp.value;
+    if(inp.dataset.k==="presupuesto") $("#f-ptotal").value = eur(presupuestoTotal(edit));
+  }));
+}
+function leerCampos(){ $("#dlg-visita").querySelectorAll("[data-k]").forEach(i => edit[i.dataset.k] = i.value); }
+function addPago(){
+  leerCampos();
+  const imp = r2($("#p-importe").value);
+  if(!(imp>0)) return toast("Falta el importe", "Escribe el importe del pago a cuenta.");
+  edit.pagos.push({id:uid(), fecha:$("#p-fecha").value||today(), importe:imp, metodo:$("#p-metodo").value, nota:$("#p-nota").value});
+  pintarVisita();
+}
+function presetAviso(dias){
+  const d = new Date(); d.setDate(d.getDate()+dias); d.setHours(9,30,0,0);
+  $("#a-fecha").value = localDT(d); $("#a-texto").focus();
+}
+function addAviso(){
+  leerCampos();
+  const f = $("#a-fecha").value, t = $("#a-texto").value.trim();
+  if(!f || !t) return toast("Faltan datos del aviso", "Indica fecha, hora y texto.");
+  edit.avisos.push({id:uid(), fecha:f, texto:t, hecho:false, notificado:false});
+  pedirPermiso(); pintarVisita();
+}
+function quitar(lista, id){ leerCampos(); edit[lista] = edit[lista].filter(x=>x.id!==id); pintarVisita(); }
+function toggleHecho(id){ leerCampos(); const a = edit.avisos.find(x=>x.id===id); a.hecho = !a.hecho; pintarVisita(); }
+function guardarVisita(facturar){
+  leerCampos();
+  if(!edit.nombre.trim()) return toast("Falta el nombre", "El nombre del cliente es obligatorio.");
+  edit.presupuesto = edit.presupuesto==="" ? "" : r2(edit.presupuesto);
+  const nuevo = edit.nuevo; delete edit.nuevo;
+  const i = S.visitas.findIndex(x=>x.id===edit.id);
+  if(i>=0) S.visitas[i] = edit; else S.visitas.push(edit);
+  save(); $("#dlg-visita").close(); render();
+  toast(nuevo?"Visita apuntada":"Cambios guardados", edit.nombre);
+  if(facturar) abrirFactura(edit.id);
+}
+function borrarVisita(){
+  const b = $("#btn-borrar");
+  if(b.dataset.ok){ S.visitas = S.visitas.filter(x=>x.id!==edit.id); save(); $("#dlg-visita").close(); render(); toast("Visita eliminada",""); }
+  else { b.dataset.ok = 1; b.textContent = "Pulsa otra vez para confirmar"; }
+}
+function cerrarDlg(id){ $("#"+id).close(); }
+
+/* ---------- Avisos ---------- */
+function rAvisos(){
+  const all = todosAvisos();
+  const pend = all.filter(x=>!x.a.hecho), hechos = all.filter(x=>x.a.hecho).reverse().slice(0,30);
+  const permiso = "Notification" in window ? Notification.permission : "no disponible";
+  $("#v-avisos").innerHTML = `
+    <div class="row"><h2>Avisos</h2><span class="spacer"></span>
+      <span class="muted">Notificaciones del sistema: <b>${permiso==="granted"?"activadas":permiso==="denied"?"bloqueadas":permiso}</b></span>
+      ${permiso==="default"?`<button onclick="pedirPermiso(true)">Activar notificaciones</button>`:""}
+      <button onclick="icsTodos()">Exportar pendientes a calendario (.ics)</button></div>
+    <p class="muted" style="margin:0">Los avisos saltan mientras esta página está abierta en el navegador. Para recibirlos también en el móvil, expórtalos a tu calendario (Google, Outlook o Apple) con el botón .ics.</p>
+    <div class="panel"><h3>Pendientes</h3>${tablaAvisos(pend, false)}</div>
+    <div class="panel"><h3>Hechos recientemente</h3>${tablaAvisos(hechos, false)}</div>`;
+}
+function tablaAvisos(list, corta){
+  if(!list.length) return `<div class="empty">No hay avisos.</div>`;
+  return `<div class="tbl"><table><thead><tr><th>Cuándo</th><th>Cliente</th><th>Aviso</th>${corta?"":"<th></th>"}</tr></thead><tbody>
+  ${list.map(({a,v})=>`<tr class="click" onclick="abrirVisita('${v.id}')"><td class="mono">${fDT(a.fecha)} ${a.hecho?'<span class="pill good">hecho</span>':vencido(a)?'<span class="pill bad">vencido</span>':'<span class="pill">próximo</span>'}</td><td><b>${esc(v.nombre)}</b><br><span class="muted mono">${esc(v.telefono)}</span></td><td>${esc(a.texto)}</td>
+  ${corta?"":`<td><button class="small" onclick="event.stopPropagation();marcar('${v.id}','${a.id}')">${a.hecho?"Reabrir":"Hecho"}</button></td>`}</tr>`).join("")}</tbody></table></div>`;
+}
+function marcar(vid, aid){ const a = S.visitas.find(v=>v.id===vid).avisos.find(x=>x.id===aid); a.hecho=!a.hecho; save(); render(); }
+function pedirPermiso(explicit){
+  if(!("Notification" in window)) return;
+  if(Notification.permission==="default") Notification.requestPermission().then(()=>{ if(explicit) render(); });
+}
+function comprobarAvisos(){
+  let cambio = false;
+  S.visitas.forEach(v => (v.avisos||[]).forEach(a => {
+    if(vencido(a) && !a.notificado){
+      a.notificado = true; cambio = true;
+      toast("Aviso: "+v.nombre, a.texto + (v.telefono? " · Tel. "+v.telefono:""), v.id, true);
+      try{ if("Notification" in window && Notification.permission==="granted") new Notification("Aviso · "+v.nombre, {body:a.texto, tag:a.id}); }catch(e){}
+    }
+  }));
+  if(cambio){ save(); render(); }
+}
+function icsEsc(s){ return String(s||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\n/g,"\\n"); }
+function icsFecha(s){ const d = new Date(s); return d.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,""); }
+function icsEvento(a, v){
+  const fin = new Date(new Date(a.fecha).getTime()+15*60000).toISOString();
+  return ["BEGIN:VEVENT","UID:"+a.id+"@libro-visitas","DTSTAMP:"+icsFecha(new Date().toISOString()),"DTSTART:"+icsFecha(a.fecha),"DTEND:"+icsFecha(fin),
+    "SUMMARY:"+icsEsc(v.nombre+" · "+a.texto),"DESCRIPTION:"+icsEsc(`Tel.: ${v.telefono||"-"}\nAsunto: ${v.asunto||"-"}`),
+    "BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+icsEsc(a.texto),"TRIGGER:-PT10M","END:VALARM","END:VEVENT"].join("\r\n");
+}
+function descargarICS(evs, nombre){
+  descargar(["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Libro de Visitas//ES","CALSCALE:GREGORIAN",...evs,"END:VCALENDAR"].join("\r\n"), nombre, "text/calendar");
+}
+function icsAviso(id){ leerCampos(); const a = edit.avisos.find(x=>x.id===id); descargarICS([icsEvento(a, edit)], "aviso.ics"); }
+function icsTodos(){ const p = todosAvisos().filter(x=>!x.a.hecho); if(!p.length) return toast("Sin avisos pendientes",""); descargarICS(p.map(x=>icsEvento(x.a,x.v)), "avisos-despacho.ics"); }
+
+/* ---------- Facturación ---------- */
+let fe = null;
+function abrirFactura(vid){
+  const v = S.visitas.find(x=>x.id===vid);
+  const yaFact = r2(S.facturas.filter(f=>f.visitaId===vid && f.estado!=="anulada").reduce((a,f)=>a+f.aCuenta,0));
+  fe = {visitaId:vid, fecha:today(), cliente:{nombre:v.nombre, nif:v.nif||"", direccion:v.direccion||"", email:v.email||""},
+    lineas:[{concepto:"Honorarios profesionales" + (v.asunto?": "+v.asunto.split("\n")[0].slice(0,120):""), importe:Number(v.presupuesto)||0}],
+    ivaPct:S.ajustes.ivaPct, irpfPct:S.ajustes.irpfPct, conIrpf:false, aCuenta:Math.max(0, r2(pagado(v)-yaFact)), notas:""};
+  pintarFactura(); $("#dlg-factura").showModal();
+}
+function pintarFactura(){
+  const c = calcFactura(fe.lineas, fe.ivaPct, fe.irpfPct, fe.conIrpf, fe.aCuenta);
+  const numero = numeroSiguiente();
+  $("#dlg-factura").innerHTML = `
+  <div class="dh"><h3>Nueva factura <span class="mono muted">${esc(numero)}</span></h3><span class="spacer"></span><button onclick="cerrarDlg('dlg-factura')">Cancelar</button></div>
+  <div class="db">
+    ${!S.ajustes.nombre||!S.ajustes.nif?`<div class="note">Faltan los datos del despacho (nombre y NIF). Complétalos en Ajustes para que aparezcan en la factura.</div>`:""}
+    <div class="grid">
+      <label>Fecha de factura<input id="x-fecha" type="date" value="${fe.fecha}"></label>
+      <label>Cliente<input id="x-nombre" value="${esc(fe.cliente.nombre)}"></label>
+      <label>NIF / CIF<input id="x-nif" value="${esc(fe.cliente.nif)}"></label>
+      <label class="full">Dirección fiscal<input id="x-direccion" value="${esc(fe.cliente.direccion)}"></label>
+    </div>
+    <div class="panel"><h3>Conceptos</h3>
+      <div class="tbl"><table><thead><tr><th>Concepto</th><th class="num" style="width:160px">Importe (base) €</th><th></th></tr></thead><tbody>
+      ${fe.lineas.map((l,i)=>`<tr><td><input data-l="${i}" data-f="concepto" value="${esc(l.concepto)}"></td><td><input data-l="${i}" data-f="importe" type="number" step="0.01" value="${l.importe}" style="text-align:right"></td><td>${fe.lineas.length>1?`<button class="small danger" onclick="fe.lineas.splice(${i},1);pintarFactura()">Quitar</button>`:""}</td></tr>`).join("")}
+      </tbody></table></div>
+      <div class="row" style="margin-top:8px"><button class="small" onclick="leerFactura();fe.lineas.push({concepto:'',importe:0});pintarFactura()">Añadir concepto</button></div>
+    </div>
+    <div class="grid">
+      <label>IVA %<input id="x-iva" type="number" step="1" min="0" value="${fe.ivaPct}"></label>
+      <label>Retención IRPF %<input id="x-irpf" type="number" step="1" min="0" value="${fe.irpfPct}"></label>
+      <label style="align-self:end;display:flex;gap:8px;align-items:center"><input id="x-conirpf" type="checkbox" ${fe.conIrpf?"checked":""}> Aplicar retención (cliente empresa o profesional)</label>
+      <label>Provisiones / pagos a cuenta a descontar €<input id="x-acuenta" type="number" step="0.01" min="0" value="${fe.aCuenta}"></label>
+      <label class="full">Notas en la factura<input id="x-notas" value="${esc(fe.notas)}" placeholder="Opcional"></label>
+    </div>
+    <div class="sum mono" id="x-sum">${sumHTML(c, fe)}</div>
+  </div>
+  <div class="df"><button class="primary" onclick="emitirFactura()">Emitir factura ${esc(numero)}</button></div>`;
+  $("#dlg-factura").querySelectorAll("input").forEach(i => i.addEventListener("input", () => { leerFactura(); $("#x-sum").innerHTML = sumHTML(calcFactura(fe.lineas, fe.ivaPct, fe.irpfPct, fe.conIrpf, fe.aCuenta), fe); }));
+}
+function sumHTML(c, f){
+  return `<span>Base imponible</span><span class="num">${eur(c.base)}</span>
+    <span>IVA ${f.ivaPct}%</span><span class="num">${eur(c.iva)}</span>
+    ${c.irpf?`<span>Retención IRPF −${f.irpfPct}%</span><span class="num">−${eur(c.irpf)}</span>`:""}
+    <span class="t">Total factura</span><span class="num t">${eur(c.total)}</span>
+    ${c.aCuenta?`<span>Provisiones de fondos recibidas</span><span class="num">−${eur(c.aCuenta)}</span><span class="t">Líquido a pagar</span><span class="num t">${eur(c.aPagar)}</span>`:""}`;
+}
+function leerFactura(){
+  const d = $("#dlg-factura");
+  d.querySelectorAll("[data-l]").forEach(i => { const l = fe.lineas[i.dataset.l]; l[i.dataset.f] = i.dataset.f==="importe" ? (Number(i.value)||0) : i.value; });
+  fe.fecha = $("#x-fecha").value; fe.cliente.nombre = $("#x-nombre").value; fe.cliente.nif = $("#x-nif").value; fe.cliente.direccion = $("#x-direccion").value;
+  fe.ivaPct = Number($("#x-iva").value)||0; fe.irpfPct = Number($("#x-irpf").value)||0; fe.conIrpf = $("#x-conirpf").checked;
+  fe.aCuenta = Number($("#x-acuenta").value)||0; fe.notas = $("#x-notas").value;
+}
+function numeroSiguiente(){ const y = (fe?.fecha||today()).slice(0,4); return `${S.ajustes.serie}${y}-${String(S.ajustes.siguiente).padStart(4,"0")}`; }
+function emitirFactura(){
+  leerFactura();
+  if(!fe.cliente.nombre.trim()) return toast("Falta el cliente","");
+  if(!fe.lineas.some(l=>l.concepto.trim() && l.importe)) return toast("Faltan conceptos","Añade al menos un concepto con importe.");
+  const c = calcFactura(fe.lineas, fe.ivaPct, fe.irpfPct, fe.conIrpf, fe.aCuenta);
+  const f = {id:uid(), numero:numeroSiguiente(), ...structuredClone(fe), ...c, estado: c.aPagar<=0 ? "cobrada" : "emitida", emisor:{...S.ajustes}};
+  delete f.emisor.ultimaCopia;
+  S.facturas.push(f); S.ajustes.siguiente++;
+  const v = S.visitas.find(x=>x.id===fe.visitaId); if(v) v.estado = "facturado";
+  save(); $("#dlg-factura").close(); if($("#dlg-visita").open) $("#dlg-visita").close();
+  render(); verFactura(f.id); toast("Factura emitida", f.numero);
+}
+const pillFact = f => `<span class="pill ${f.estado==="cobrada"?"good":f.estado==="anulada"?"bad":"warn"}">${f.estado==="emitida"?"pendiente de cobro":f.estado}</span>`;
+function rFacturas(){
+  const anios = [...new Set(S.facturas.map(f=>f.fecha.slice(0,4)))].sort().reverse();
+  const list = [...S.facturas].sort((a,b)=>b.numero.localeCompare(a.numero));
+  const vivas = S.facturas.filter(f=>f.estado!=="anulada");
+  const tri = t => vivas.filter(f=> f.fecha.startsWith(today().slice(0,4)) && Math.ceil(Number(f.fecha.slice(5,7))/3)===t);
+  $("#v-facturas").innerHTML = `
+    <div class="row"><h2>Facturas</h2><span class="spacer"></span><button onclick="exportarFacturasCSV()">Libro de facturas (CSV)</button></div>
+    <div class="panel"><h3>Resumen ${today().slice(0,4)} por trimestre</h3><div class="tbl"><table><thead><tr><th>Trimestre</th><th class="num">Facturas</th><th class="num">Base</th><th class="num">IVA repercutido</th><th class="num">IRPF retenido</th><th class="num">Total</th></tr></thead><tbody>
+    ${[1,2,3,4].map(t=>{const l=tri(t);const s=k=>r2(l.reduce((a,f)=>a+f[k],0));return `<tr><td>${t}T</td><td class="num">${l.length}</td><td class="num">${eur(s("base"))}</td><td class="num">${eur(s("iva"))}</td><td class="num">${eur(s("irpf"))}</td><td class="num">${eur(s("total"))}</td></tr>`}).join("")}
+    </tbody></table></div></div>
+    <div class="panel">${list.length?`<div class="tbl"><table><thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th class="num">Base</th><th class="num">Total</th><th class="num">A pagar</th><th>Estado</th></tr></thead><tbody>
+    ${list.map(f=>`<tr class="click" onclick="verFactura('${f.id}')"><td class="mono">${esc(f.numero)}</td><td class="mono">${fDate(f.fecha)}</td><td>${esc(f.cliente.nombre)}</td><td class="num">${eur(f.base)}</td><td class="num">${eur(f.total)}</td><td class="num">${eur(f.aPagar)}</td><td>${pillFact(f)}</td></tr>`).join("")}
+    </tbody></table></div>`:`<div class="empty">Aún no hay facturas. Se emiten desde la ficha de una visita con «Guardar y facturar».</div>`}</div>`;
+}
+function facturaHTML(f){
+  const em = f.emisor || S.ajustes;
+  return `<div class="inv">
+    <div class="ih"><div><h1>${esc(em.nombre||"(Nombre del despacho)")}</h1>
+      <div>${em.colegiado?esc(em.colegiado)+"<br>":""}NIF: ${esc(em.nif||"—")}<br>${esc(em.direccion).replace(/\n/g,"<br>")}${em.telefono?"<br>Tel. "+esc(em.telefono):""}${em.email?" · "+esc(em.email):""}</div></div>
+      <div style="text-align:right"><div class="lbl">Factura</div><div style="font:600 18px var(--f-mono)">${esc(f.numero)}</div><div class="lbl" style="margin-top:8px">Fecha</div><div>${fDate(f.fecha)}</div></div></div>
+    <div class="parties"><div><div class="lbl">Cliente</div><b>${esc(f.cliente.nombre)}</b><br>NIF: ${esc(f.cliente.nif||"—")}<br>${esc(f.cliente.direccion)}</div><div></div></div>
+    <table><thead><tr><th>Concepto</th><th class="num">Importe</th></tr></thead><tbody>
+    ${f.lineas.filter(l=>l.concepto||l.importe).map(l=>`<tr><td>${esc(l.concepto)}</td><td class="num">${eur(l.importe)}</td></tr>`).join("")}</tbody></table>
+    <div class="sum">${sumHTML(f, f)}</div>
+    ${f.notas?`<p>${esc(f.notas)}</p>`:""}
+    <div class="foot">${em.iban?`Forma de pago: transferencia a la cuenta <b>${esc(em.iban)}</b><br>`:""}${esc(em.pie||"")}</div>
+  </div>`;
+}
+function verFactura(id){
+  const f = S.facturas.find(x=>x.id===id), d = $("#dlg-ver");
+  d.innerHTML = `<div class="dh"><h3 class="mono">${esc(f.numero)}</h3>${pillFact(f)}<span class="spacer"></span><button onclick="cerrarDlg('dlg-ver')">Cerrar</button></div>
+  <div class="db" style="background:var(--sunken)">${facturaHTML(f)}</div>
+  <div class="df"><button class="primary" onclick="imprimir('${f.id}')">Imprimir / guardar PDF</button>
+   ${f.estado==="emitida"?`<button onclick="estadoFact('${f.id}','cobrada')">Marcar como cobrada</button>`:""}
+   ${f.estado==="cobrada"?`<button onclick="estadoFact('${f.id}','emitida')">Marcar pendiente</button>`:""}
+   <span class="spacer"></span>${f.estado!=="anulada"?`<button class="danger" id="btn-anular" onclick="anular('${f.id}')">Anular</button>`:""}</div>`;
+  if(!d.open) d.showModal();
+}
+function imprimir(id){ $("#print-area").innerHTML = facturaHTML(S.facturas.find(x=>x.id===id)); window.print(); }
+function estadoFact(id, e){ S.facturas.find(x=>x.id===id).estado = e; save(); render(); verFactura(id); }
+function anular(id){
+  const b = $("#btn-anular");
+  if(!b.dataset.ok){ b.dataset.ok=1; b.textContent="Pulsa otra vez para anular"; return; }
+  estadoFact(id,"anulada"); toast("Factura anulada","Su número se conserva. Si ya la entregaste, emite una factura rectificativa.");
+}
+
+/* ---------- Ajustes y copias ---------- */
+function rAjustes(){
+  const a = S.ajustes;
+  const c = (k,l,t="text",cls="") => `<label class="${cls}">${l}<input data-a="${k}" type="${t}" value="${esc(a[k])}"></label>`;
+  $("#v-ajustes").innerHTML = `
+    <h2>Ajustes</h2>
+    <div class="panel"><h3>Datos del despacho para las facturas</h3><div class="grid">
+      ${c("nombre","Nombre o razón social","text","full")}${c("nif","NIF")}${c("colegiado","Colegiado/a nº y colegio")}
+      ${c("telefono","Teléfono")}${c("email","Email")}${c("direccion","Dirección","text","full")}${c("iban","IBAN para transferencias","text","full")}
+      ${c("pie","Texto al pie de la factura","text","full")}</div></div>
+    <div class="panel"><h3>Numeración e impuestos</h3><div class="grid">
+      ${c("serie","Serie (prefijo)")}${c("siguiente","Siguiente número","number")}${c("ivaPct","IVA por defecto %","number")}${c("irpfPct","Retención IRPF por defecto %","number")}</div>
+      <p class="muted">Próxima factura: <b class="mono">${esc(a.serie)}${today().slice(0,4)}-${String(a.siguiente).padStart(4,"0")}</b>. La retención general de profesionales es el 15 % (7 % en los tres primeros años de actividad).</p></div>
+    <div class="panel"><h3>Copia de seguridad</h3>
+      <p class="muted">Todo se guarda en este navegador y en este equipo. Descarga copias con regularidad y guárdalas en un sitio seguro. Con la copia puedes pasar los datos a otro ordenador.</p>
+      <div class="row"><button class="primary" onclick="exportar()">Descargar copia (.json)</button>
+      <label class="btn" style="display:inline-block;color:var(--fg)">Restaurar copia…<input type="file" id="imp" accept=".json,application/json" hidden></label>
+      <span class="muted">Última copia: ${a.ultimaCopia?fDT(a.ultimaCopia):"nunca"}</span></div></div>`;
+  $("#v-ajustes").querySelectorAll("[data-a]").forEach(i => i.addEventListener("change", () => {
+    a[i.dataset.a] = i.type==="number" ? (Number(i.value)||0) : i.value; save(); rAjustes();
+  }));
+  $("#imp").onchange = importar;
+}
+function descargar(txt, nombre, tipo){
+  const u = URL.createObjectURL(new Blob([txt], {type:tipo+";charset=utf-8"}));
+  const a = Object.assign(document.createElement("a"), {href:u, download:nombre}); document.body.append(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u), 2000);
+}
+function exportar(){
+  S.ajustes.ultimaCopia = new Date().toISOString(); save();
+  descargar(JSON.stringify(S, null, 1), `libro-visitas-copia-${today()}.json`, "application/json"); render();
+}
+function importar(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  file.text().then(t => {
+    const d = JSON.parse(t);
+    if(!Array.isArray(d.visitas)) throw new Error();
+    S = {visitas:d.visitas, facturas:d.facturas||[], ajustes:Object.assign({}, DEF_AJUSTES, d.ajustes)}; save(); render();
+    toast("Copia restaurada", `${S.visitas.length} visitas y ${S.facturas.length} facturas.`);
+  }).catch(()=>toast("No se ha podido restaurar", "El archivo no es una copia válida del Libro de Visitas."));
+}
+const csv = rows => "\uFEFF" + rows.map(r => r.map(x => `"${String(x??"").replace(/"/g,'""')}"`).join(";")).join("\r\n");
+const n2 = n => (Number(n)||0).toFixed(2).replace(".",",");
+function exportarCSV(){
+  descargar(csv([["Fecha","Nombre","Teléfono","Email","NIF","Asunto","Observaciones","Presupuesto base","Pagado","Pendiente","Estado"],
+    ...S.visitas.map(v=>[fDT(v.fecha),v.nombre,v.telefono,v.email,v.nif,v.asunto,v.observaciones,n2(v.presupuesto),n2(pagado(v)),n2(v.presupuesto?pendiente(v):0),v.estado])]), `visitas-${today()}.csv`, "text/csv");
+}
+function exportarFacturasCSV(){
+  descargar(csv([["Número","Fecha","Cliente","NIF","Base","IVA %","IVA","IRPF %","IRPF","Total","A cuenta","A pagar","Estado"],
+    ...[...S.facturas].sort((a,b)=>a.numero.localeCompare(b.numero)).map(f=>[f.numero,fDate(f.fecha),f.cliente.nombre,f.cliente.nif,n2(f.base),f.ivaPct,n2(f.iva),f.conIrpf?f.irpfPct:0,n2(f.irpf),n2(f.total),n2(f.aCuenta),n2(f.aPagar),f.estado])]), `libro-facturas-${today()}.csv`, "text/csv");
+}
+
+/* ---------- Avisos en pantalla ---------- */
+function toast(titulo, texto, vid, fijo){
+  const t = document.createElement("div"); t.className = "toast";
+  t.innerHTML = `<div style="flex:1"><b>${esc(titulo)}</b>${esc(texto)}</div>${vid?`<button class="small">Abrir</button>`:""}<button class="small" aria-label="Cerrar">×</button>`;
+  const [abrir, cerrar] = vid ? t.querySelectorAll("button") : [null, t.querySelector("button")];
+  if(abrir) abrir.onclick = () => { abrirVisita(vid); t.remove(); };
+  cerrar.onclick = () => t.remove();
+  $("#toasts").append(t);
+  if(!fijo) setTimeout(()=>t.remove(), 4500);
+}
+
+ir("inicio");
+comprobarAvisos();
+setInterval(comprobarAvisos, 30000);
+window.addEventListener("storage", e => { if(e.key===KEY){ S = load(); render(); } });
+</script>
+</body>
+</html>
