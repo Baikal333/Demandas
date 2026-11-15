@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Política de seguridad: la página NO puede conectarse a ningún servidor.
+     connect-src 'none' impide cualquier envío de datos (fetch, XHR, WebSocket, beacon). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; worker-src blob:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Anonimizador local</title>
+<style>
+/*INLINE:styles.css*/
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-inner">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm0 2.2 6 2.25V11c0 4-2.6 7.8-6 8.9-3.4-1.1-6-4.9-6-8.9V6.45l6-2.25ZM9 10a3 3 0 1 0 6 0 3 3 0 0 0-6 0Zm-1.5 6.5c.9-1.5 2.6-2.5 4.5-2.5s3.6 1 4.5 2.5c-1.2 1.2-2.8 2-4.5 2s-3.3-.8-4.5-2Z"/></svg>
+      <div>
+        <h1>Anonimizador local</h1>
+        <p class="sub">Sustituye los datos personales por datos ficticios evidentes</p>
+      </div>
+    </div>
+    <div class="local-badge" title="La página tiene bloqueada cualquier conexión de red mediante su política de seguridad (CSP: connect-src 'none').">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 1a5 5 0 0 0-5 5v4H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5Zm-3 9V6a3 3 0 1 1 6 0v4H9Z"/></svg>
+      El archivo no sale de este equipo
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- PASO 1 -->
+  <section id="step-load" class="card">
+    <h2><span class="num">1</span> Cargue el documento</h2>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="file" role="tab">Archivo</button>
+      <button class="tab" data-tab="paste" role="tab">Pegar texto</button>
+    </div>
+    <div class="tabpane" data-pane="file">
+      <label id="drop" class="drop" tabindex="0">
+        <input id="file" type="file" hidden accept=".docx,.xlsx,.pptx,.odt,.ods,.odp,.pdf,.txt,.csv,.tsv,.md,.json,.xml,.html,.htm,.srt,.vtt,.log,.eml">
+        <svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm4 18H6V4h7v5h5v11Zm-9-6 3-3 3 3h-2v4h-2v-4H9Z"/></svg>
+        <strong>Arrastre aquí el archivo o haga clic para elegirlo</strong>
+        <span class="muted">Word (.docx), Excel (.xlsx), PowerPoint (.pptx), OpenDocument (.odt, .ods, .odp), PDF con texto, y texto (.txt, .csv, .md, .json, .html, .xml…)</span>
+      </label>
+    </div>
+    <div class="tabpane" data-pane="paste" hidden>
+      <textarea id="paste" rows="8" placeholder="Pegue aquí el texto que quiere anonimizar…"></textarea>
+      <button id="btn-paste" class="btn primary">Analizar texto</button>
+    </div>
+
+    <details class="settings" id="settings">
+      <summary>Opciones de detección y sustitución</summary>
+      <div class="settings-grid">
+        <fieldset>
+          <legend>Qué datos buscar</legend>
+          <div id="cats" class="cats"></div>
+        </fieldset>
+        <fieldset>
+          <legend>Cómo sustituirlos</legend>
+          <label class="radio"><input type="radio" name="style" value="ficticio" checked> Datos ficticios evidentes <span class="muted">— «Fulano de Tal», DNI 00000001R, persona.ficticia1@ejemplo.invalid</span></label>
+          <label class="radio"><input type="radio" name="style" value="etiqueta"> Etiquetas <span class="muted">— [PERSONA A], [DNI 1], [EMAIL 1]</span></label>
+          <legend class="mt">Además</legend>
+          <label class="check"><input type="checkbox" id="opt-meta" checked> Limpiar metadatos (autor, empresa, revisores, miniatura)</label>
+          <label class="check"><input type="checkbox" id="opt-images"> Sustituir imágenes por recuadros en blanco</label>
+        </fieldset>
+        <fieldset class="wide">
+          <legend>Términos que siempre deben ocultarse (opcional)</legend>
+          <textarea id="custom" rows="3" placeholder="Un término por línea. Puede indicar el sustituto con =>&#10;Finca Los Olivos => Finca Ficticia&#10;Expediente 2024/0815"></textarea>
+        </fieldset>
+      </div>
+    </details>
+  </section>
+
+  <div id="error" class="alert error" hidden></div>
+  <div id="busy" class="busy" hidden><span class="spinner"></span> <span id="busy-text">Procesando…</span></div>
+
+  <!-- PASO 2 -->
+  <section id="step-review" class="card" hidden>
+    <div class="review-head">
+      <h2><span class="num">2</span> Revise los datos detectados</h2>
+      <div class="file-info" id="file-info"></div>
+    </div>
+    <div id="warnings"></div>
+    <p class="muted small">La detección es automática y puede fallar: <strong>revise el documento</strong>. Desmarque lo que no deba sustituirse, edite los sustitutos o <strong>seleccione texto en la vista previa</strong> para añadir datos que falten.</p>
+
+    <div class="review">
+      <div class="panel list-panel">
+        <div class="list-tools">
+          <input id="filter" type="search" placeholder="Filtrar…">
+          <button id="btn-all" class="btn small ghost" title="Marcar todos">Todos</button>
+          <button id="btn-none" class="btn small ghost" title="Desmarcar todos">Ninguno</button>
+        </div>
+        <form id="add-form" class="add-form">
+          <input id="add-text" placeholder="Añadir un dato que falte…" autocomplete="off">
+          <button class="btn small">Añadir</button>
+        </form>
+        <div id="entities" class="entities"></div>
+      </div>
+      <div class="panel preview-panel">
+        <div class="preview-tools">
+          <div class="seg" role="group">
+            <button class="seg-btn active" data-view="orig">Original</button>
+            <button class="seg-btn" data-view="anon">Anonimizado</button>
+          </div>
+          <span id="stats" class="muted small"></span>
+        </div>
+        <div id="preview" class="preview" tabindex="0"></div>
+        <button id="sel-add" class="sel-add" hidden>+ Anonimizar «<span></span>»</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="btn-download" class="btn primary big">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M5 20h14v-2H5v2Zm7-18v11.17l-4.59-4.58L6 10l6 6 6-6-1.41-1.41L13 13.17V2h-1Z"/></svg>
+        Descargar documento anonimizado
+      </button>
+      <button id="btn-map" class="btn">Descargar tabla de correspondencias</button>
+      <button id="btn-reset" class="btn ghost">Empezar con otro archivo</button>
+    </div>
+    <p class="muted small">La tabla de correspondencias contiene los datos reales: guárdela en lugar seguro y no la comparta con el documento anonimizado.</p>
+  </section>
+
+  <section class="card info">
+    <h2>Privacidad</h2>
+    <ul>
+      <li>Todo el proceso se realiza en su navegador. El documento <strong>nunca se envía</strong> a ningún servidor.</li>
+      <li>La página tiene bloqueada por su política de seguridad cualquier conexión de red. Puede comprobarlo desconectando el equipo de Internet: funciona igual.</li>
+      <li>Puede guardar este archivo HTML y abrirlo directamente desde su disco, sin conexión.</li>
+      <li>Los datos ficticios son reconocibles a simple vista: nombres como «Fulano», «Mengana» o «de Tal», DNI que empiezan por 0000000, correos en el dominio reservado <code>.invalid</code>, teléfonos «000 000 0XX», IBAN «ES00 0000…», códigos postales 00000 o la IP de documentación 192.0.2.x.</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="wrap foot muted small">Anonimizador local · funciona sin conexión · los resultados deben revisarse antes de compartirse</footer>
+
+<script>
+/*INLINE:../vendor/pdfjs/pdf.worker.min.js*/
+</script>
+<script>
+/*INLINE:../vendor/pdfjs/pdf.min.js*/
+</script>
+<script>
+/*INLINE:zip.js*/
+</script>
+<script>
+/*INLINE:detector.js*/
+</script>
+<script>
+/*INLINE:formats.js*/
+</script>
+<script>
+/*INLINE:app.js*/
+</script>
+</body>
+</html>
