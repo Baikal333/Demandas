@@ -1,0 +1,35 @@
+[
+  {
+    "nombre": "Telefonía Ejemplo, S.A.",
+    "nif": "A00000000",
+    "reconocer_por": ["A00000000", "Telefonía Ejemplo"],
+    "concepto": "Servicio de telefonía e internet",
+    "cuenta_gasto": 629,
+    "iva_pct": 21,
+    "irpf_pct": 0,
+    "tipo_operacion": "Nacional",
+    "imputacion_pct": 100,
+    "imputacion_iva_pct": 100,
+    "patrones": {
+      "numero": "N[ºo°]\\s*(?:de\\s*)?factura[:\\s]*([A-Z0-9\\-/]+)",
+      "fecha": "Fecha(?:\\s+de)?(?:\\s+factura)?[:\\s]*(\\d{1,2}[/.\\-]\\d{1,2}[/.\\-]\\d{2,4})",
+      "base": "Base\\s+imponible[:\\s]*([\\d.,]+)",
+      "total": "Total(?:\\s+factura)?[:\\s]*([\\d.,]+)\\s*€?"
+    }
+  },
+  {
+    "nombre": "Gestoría Ejemplo, S.L.",
+    "nif": "B12345678",
+    "reconocer_por": ["B12345678"],
+    "concepto": "Honorarios asesoría",
+    "cuenta_gasto": 623,
+    "iva_pct": 21,
+    "irpf_pct": 15,
+    "patrones": {
+      "numero": "Factura\\s+n[ºo°.]*\\s*([A-Z0-9\\-/]+)",
+      "fecha": "Fecha[:\\s]*(\\d{1,2}[/.\\-]\\d{1,2}[/.\\-]\\d{2,4})",
+      "base": "Base\\s+imponible[:\\s]*([\\d.,]+)",
+      "total": "Total\\s+a\\s+pagar[:\\s]*([\\d.,]+)"
+    }
+  }
+]

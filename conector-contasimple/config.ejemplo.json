@@ -1,0 +1,10 @@
+{
+  "clave_api_contasimple": "PEGUE_AQUI_SU_CLAVE_DE_API",
+  "carpeta_entrada": "C:/Facturas/Recibidas",
+  "carpeta_gestionadas": "C:/Facturas/Gestionadas",
+  "carpeta_revisar": "C:/Facturas/Revisar",
+  "subcarpeta_por_anio": true,
+  "cuenta_gasto_defecto": 629,
+  "formato_periodo": "{anio}-{trimestre}T",
+  "client_id": ""
+}
