@@ -10,6 +10,7 @@ Uso (desde la carpeta del conector):
     python facturas_contasimple.py procesar     -> procesa la carpeta de entrada
     python facturas_contasimple.py probar       -> comprueba la conexión y lista las cuentas de gasto
     python facturas_contasimple.py texto X.pdf  -> muestra el texto de un PDF (para crear plantillas)
+    python facturas_contasimple.py nuevo-proveedor X.pdf  -> crea la plantilla de un proveedor a partir de una factura
     python facturas_contasimple.py probar-plantilla X.pdf -> extrae datos sin registrar nada
 """
 
@@ -19,6 +20,7 @@ import re
 import shutil
 import sys
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 try:
@@ -172,10 +174,15 @@ def extraer(texto, plantilla, config):
     return datos
 
 
+def redondea(x):
+    return float(Decimal(str(x)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+
 def calcula(d):
-    d["cuota_iva"] = round((d["base"] or 0) * d["iva_pct"] / 100, 2)
-    d["cuota_irpf"] = round((d["base"] or 0) * d["irpf_pct"] / 100, 2)
-    d["total_calculado"] = round((d["base"] or 0) + d["cuota_iva"] - d["cuota_irpf"], 2)
+    base = d["base"] or 0
+    d["cuota_iva"] = redondea(Decimal(str(base)) * Decimal(str(d["iva_pct"])) / 100)
+    d["cuota_irpf"] = redondea(Decimal(str(base)) * Decimal(str(d["irpf_pct"])) / 100)
+    d["total_calculado"] = redondea(Decimal(str(base)) + Decimal(str(d["cuota_iva"])) - Decimal(str(d["cuota_irpf"])))
     return d
 
 
@@ -367,6 +374,134 @@ class Contasimple:
 
 
 # --------------------------------------------------------------------------
+# Creación automática de plantillas
+# --------------------------------------------------------------------------
+
+RE_FECHA = r"\d{1,2}[/.\-]\d{1,2}[/.\-]\d{2,4}|\d{1,2}\s+de\s+[A-Za-záéíóú]+\s+(?:de\s+)?\d{4}"
+RE_IMPORTE = r"-?\d{1,3}(?:\.\d{3})*,\d{2}|-?\d{1,3}(?:,\d{3})*\.\d{2}|-?\d+(?:[.,]\d{1,2})?"
+CAPTURA = {
+    "numero": r"([A-Za-z0-9][A-Za-z0-9\-/\.]*)",
+    "fecha": "(" + RE_FECHA + ")",
+    "base": "(" + RE_IMPORTE + ")",
+    "total": "(" + RE_IMPORTE + ")",
+}
+PALABRAS = {"numero": ("factura", "n", "num", "nº"), "fecha": ("fecha",),
+            "base": ("base", "imponible", "subtotal"), "total": ("total",)}
+LETRA = r"[A-Za-zÁÉÍÓÚáéíóúñÑ]"
+
+
+def _etiquetas(texto, inicio):
+    """Posibles etiquetas del valor: lo que tiene delante en su línea, o la cabecera de la línea anterior
+    (facturas en forma de tabla). Devuelve (etiqueta, columna) con columna=None si está en la misma línea."""
+    ini_linea = texto.rfind("\n", 0, inicio) + 1
+    antes = texto[ini_linea:inicio]
+    res = []
+    m = re.search(r"([^\d\n]{2,40}?)[\s:.\-€]*$", antes)
+    if m and re.search(LETRA, m.group(1)):
+        res.append((re.sub(r"[\s:.\-€(]+$", "", m.group(1)).strip(), None))
+    if ini_linea > 0:
+        ant_ini = texto.rfind("\n", 0, ini_linea - 1) + 1
+        anterior = texto[ant_ini:ini_linea - 1]
+        palabras = [w for w in anterior.split()[:3]]
+        while palabras and not re.search(LETRA, palabras[-1]):
+            palabras.pop()
+        if palabras:
+            columna = len(antes.split())
+            res.append((" ".join(palabras), columna))
+    return res
+
+
+def _patron(etiqueta, columna, tipo):
+    pre = r"(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])" + r"\s+".join(re.escape(p) for p in etiqueta.split())
+    if columna is None:
+        sep = r"[\s:.\-€]*"
+    else:
+        sep = r"[^\n]*\n\s*" + (r"(?:\S+\s+){%d}" % columna if columna else "")
+    return pre + sep + CAPTURA[tipo]
+
+
+def _candidatos(texto, tipo, valor):
+    if tipo == "numero":
+        return [m.start() for m in re.finditer(re.escape(str(valor)), texto)]
+    if tipo == "fecha":
+        return [m.start() for m in re.finditer(RE_FECHA, texto) if fecha(m.group(0)) == valor]
+    return [m.start() for m in re.finditer(RE_IMPORTE, texto) if importe(m.group(0)) == valor]
+
+
+def _coincide(tipo, extraido, valor):
+    if tipo == "numero":
+        return extraido == str(valor)
+    if tipo == "fecha":
+        return fecha(extraido) == valor
+    return importe(extraido) == valor
+
+
+def crear_patron(texto, tipo, valor):
+    if valor in (None, ""):
+        return None
+    posiciones = _candidatos(texto, tipo, valor)
+    # se prueban primero las apariciones con una etiqueta "típica" (Total, Base, Fecha...)
+    opciones = []
+    for pos in posiciones:
+        for etiqueta, columna in _etiquetas(texto, pos):
+            tipica = any(p in etiqueta.lower() for p in PALABRAS[tipo])
+            opciones.append((not tipica, columna is not None, -pos if tipo == "total" else pos, etiqueta, columna))
+    for *_, etiqueta, columna in sorted(opciones):
+        patron = _patron(etiqueta, columna, tipo)
+        extraido = campo(texto, patron)
+        if extraido is not None and _coincide(tipo, extraido, valor):
+            return patron
+    return None
+
+
+def plantilla_desde_datos(texto, d):
+    patrones, fallos = {}, []
+    for tipo, nombre in (("numero", "número"), ("fecha", "fecha"), ("base", "base imponible"), ("total", "total")):
+        valor = d.get("total_calculado") if tipo == "total" else d.get(tipo)
+        p = crear_patron(texto, tipo, valor)
+        if p:
+            patrones[tipo] = p
+        else:
+            fallos.append(nombre)
+    reconocer = [d["nif"]] if normaliza_nif(d["nif"]) in normaliza_nif(texto) else []
+    if not reconocer and d["proveedor"] and d["proveedor"].lower() in texto.lower():
+        reconocer = [d["proveedor"]]
+    plantilla = {
+        "nombre": d["proveedor"], "nif": d["nif"], "reconocer_por": reconocer,
+        "concepto": d["concepto"], "cuenta_gasto": int(d["cuenta_gasto"]),
+        "iva_pct": d["iva_pct"], "irpf_pct": d["irpf_pct"],
+        "tipo_operacion": d.get("tipo_operacion", "Nacional"),
+        "imputacion_pct": d.get("imputacion", 100), "imputacion_iva_pct": d.get("imputacion_iva", 100),
+        "patrones": patrones,
+    }
+    return plantilla, fallos
+
+
+def ofrecer_plantilla(texto, d, preguntar=True):
+    """Crea la plantilla a partir de una factura ya revisada y la guarda si el usuario quiere."""
+    if not texto.strip():
+        return
+    if preguntar:
+        r = input(f"\n  ¿Guardar a {d['proveedor']} como proveedor habitual para leer sus próximas facturas? [S/N]: ")
+        if r.strip().lower() != "s":
+            return
+    calcula(d)
+    plantilla, fallos = plantilla_desde_datos(texto, d)
+    if not plantilla["reconocer_por"]:
+        print("  ✗ No encuentro ni el NIF ni el nombre del proveedor en el texto del PDF: no puedo crear la plantilla.")
+        return
+    if fallos:
+        print(f"  ⚠  No he sabido localizar en el PDF: {', '.join(fallos)}. "
+              "Esos datos se le pedirán o calcularán en cada factura.")
+    proveedores = cargar_json(PROVEEDORES_FILE, obligatorio=False) or []
+    proveedores = [p for p in proveedores if normaliza_nif(p.get("nif")) != normaliza_nif(d["nif"])]
+    proveedores.append(plantilla)
+    with open(PROVEEDORES_FILE, "w", encoding="utf-8") as f:
+        json.dump(proveedores, f, ensure_ascii=False, indent=2)
+    log(f"  ✓ Proveedor {d['proveedor']} guardado en proveedores.json.")
+
+
+# --------------------------------------------------------------------------
 # Órdenes
 # --------------------------------------------------------------------------
 
@@ -387,7 +522,7 @@ def clave_api(config):
 
 
 def orden_procesar(config):
-    proveedores = cargar_json(PROVEEDORES_FILE)
+    proveedores = cargar_json(PROVEEDORES_FILE, obligatorio=False) or []
     entrada = Path(config["carpeta_entrada"])
     for c in ("carpeta_entrada", "carpeta_gestionadas", "carpeta_revisar"):
         Path(config[c]).mkdir(parents=True, exist_ok=True)
@@ -428,6 +563,9 @@ def orden_procesar(config):
         final = mover(ruta, config["carpeta_gestionadas"], sub)
         log(f"{ruta.name}: registrada en Contasimple (id {fid}, periodo {per}) y movida a {final}")
         hechas += 1
+        if not plantilla and texto.strip():
+            ofrecer_plantilla(texto, d)
+            proveedores = cargar_json(PROVEEDORES_FILE, obligatorio=False) or []
     print(f"\nTerminado. Registradas: {hechas}.")
 
 
@@ -454,6 +592,23 @@ def orden_texto(ruta):
     print(texto_pdf(Path(ruta)))
 
 
+def orden_nuevo_proveedor(config, ruta):
+    ruta = Path(ruta.strip('"'))
+    texto = texto_pdf(ruta)
+    if not texto.strip():
+        print("Este PDF no tiene texto (es una imagen escaneada): no se puede crear una plantilla.")
+        return
+    print("Escriba los datos de ESTA factura tal como aparecen en el PDF.")
+    d = datos_manual(ruta.name, config)
+    calcula(d)
+    ofrecer_plantilla(texto, d, preguntar=False)
+    proveedores = cargar_json(PROVEEDORES_FILE, obligatorio=False) or []
+    p = buscar_plantilla(texto, proveedores)
+    if p:
+        print("\nAsí leerá el programa las próximas facturas de este proveedor:")
+        mostrar(extraer(texto, p, config), ruta.name)
+
+
 def orden_probar_plantilla(config, ruta):
     proveedores = cargar_json(PROVEEDORES_FILE)
     texto = texto_pdf(Path(ruta))
@@ -466,7 +621,8 @@ def orden_probar_plantilla(config, ruta):
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ("procesar", "probar", "texto", "probar-plantilla"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("procesar", "probar", "texto", "probar-plantilla",
+                                                "nuevo-proveedor"):
         print(__doc__)
         return
     orden = sys.argv[1]
@@ -478,6 +634,11 @@ def main():
         orden_procesar(config)
     elif orden == "probar":
         orden_probar(config)
+    elif orden == "nuevo-proveedor":
+        if len(sys.argv) < 3:
+            print("Arrastre una factura PDF del proveedor sobre nuevo_proveedor.bat")
+            return
+        orden_nuevo_proveedor(config, sys.argv[2])
     elif orden == "probar-plantilla":
         orden_probar_plantilla(config, sys.argv[2])
 

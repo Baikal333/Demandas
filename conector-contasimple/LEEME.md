@@ -34,39 +34,38 @@ Use barras normales en las rutas (`C:/Facturas/Recibidas`) o barras dobles (`C:\
 
 Ejecute **`probar.bat`**. Comprueba la clave, lista las cuentas de gasto de su empresa y confirma que el formato de periodo es válido.
 
-## 4. Plantillas de proveedores (proveedores.json)
+## 4. Dar de alta proveedores habituales
 
-Cada proveedor habitual tiene una plantilla que dice cómo reconocer su factura y dónde están los datos:
+El programa reconoce a cada proveedor habitual por su NIF y sabe dónde están sus datos en el PDF. Ese "aprendizaje" se guarda en `proveedores.json` y se crea solo. Hay dos formas:
 
-```json
-{
-  "nombre": "Gestoría Ejemplo, S.L.",
-  "nif": "B12345678",
-  "reconocer_por": ["B12345678"],
-  "concepto": "Honorarios asesoría",
-  "cuenta_gasto": 623,
-  "iva_pct": 21,
-  "irpf_pct": 15,
-  "patrones": {
-    "numero": "Factura\\s+n[ºo°.]*\\s*([A-Z0-9\\-/]+)",
-    "fecha":  "Fecha[:\\s]*(\\d{1,2}[/.\\-]\\d{1,2}[/.\\-]\\d{2,4})",
-    "base":   "Base\\s+imponible[:\\s]*([\\d.,]+)",
-    "total":  "Total\\s+a\\s+pagar[:\\s]*([\\d.,]+)"
-  }
-}
-```
+**A) Mientras procesa las facturas (lo más cómodo).** Cuando llegue la primera factura de un proveedor nuevo, el programa le pide los datos a mano. Después de registrarla, le pregunta:
 
-- `reconocer_por`: el NIF o un texto que solo aparece en las facturas de ese proveedor.
-- `patrones`: expresiones regulares. Lo que va entre paréntesis es el dato que se extrae.
-- Campos opcionales: `tipo_operacion` (`Nacional`, `Intracumunitaria`, `InversionSujetoPasivo`, `NacionalExenta`…), `imputacion_pct` e `imputacion_iva_pct` (p. ej. 50 para un vehículo de uso mixto), y los patrones `iva_pct` e `irpf_pct` si el tipo varía.
+> ¿Guardar a … como proveedor habitual para leer sus próximas facturas? [S/N]
 
-Para crear una plantilla nueva:
+Si responde **S**, las siguientes facturas de ese proveedor se leerán solas.
 
-1. Vea el texto que contiene el PDF:
-   `python facturas_contasimple.py texto "C:/Facturas/Recibidas/factura.pdf"`
-2. Escriba los patrones a partir de ese texto. Si me pasa esa salida, se los preparo.
-3. Compruebe la plantilla sin registrar nada:
-   `python facturas_contasimple.py probar-plantilla "C:/Facturas/Recibidas/factura.pdf"`
+**B) Por adelantado, sin registrar nada.** Arrastre una factura PDF del proveedor y suéltela encima de **`nuevo_proveedor.bat`**. Le pedirá:
+
+| Dato | Ejemplo | Consejo |
+|---|---|---|
+| Número de factura | `FE26-000981` | Cópielo tal cual aparece |
+| Fecha | `03/11/2026` | |
+| Proveedor | `Energía Sur, S.L.` | |
+| NIF proveedor | `B87654321` | El del proveedor, no el suyo |
+| Concepto | `Electricidad despacho` | Es el texto que verá en Contasimple |
+| Base imponible | `84,30` | |
+| % IVA | `21` | |
+| % IRPF | `0`, `15` o `19` | `19` para alquileres, `15` para profesionales |
+| Cuenta de gasto | `628` | Vea la lista con `probar.bat` |
+
+Al terminar, le enseña cómo leerá las próximas facturas de ese proveedor, para que lo compruebe.
+
+Si le avisa de que **no ha sabido localizar** algún dato (por ejemplo, la fecha), no pasa nada: ese dato se le pedirá en cada factura. Si un proveedor le da problemas, envíeme el PDF y ajusto la plantilla.
+
+Para dar de alta otra vez un proveedor (porque ha cambiado el diseño de su factura), vuelva a usar `nuevo_proveedor.bat` con una factura nueva. Sustituye la plantilla anterior.
+
+Para comprobar una plantilla sin registrar nada:
+`python facturas_contasimple.py probar-plantilla "ruta/factura.pdf"`
 
 ## 5. Uso diario
 
@@ -79,7 +78,7 @@ Haga doble clic en **`procesar.bat`**. Para cada PDF de la carpeta de entrada:
    - **R**: mover a *Revisar*.
    - **O**: dejarla para otro momento.
    - **X**: salir.
-3. Si un PDF no tiene plantilla, o es un escaneado sin texto, le pide los datos a mano.
+3. Si un PDF es de un proveedor nuevo, o es un escaneado sin texto, le pide los datos a mano. Si es de un proveedor nuevo, después le ofrece guardarlo como habitual.
 
 Nada se registra sin su confirmación. Si Contasimple da un error, por ejemplo una factura duplicada, el PDF **se queda** en la carpeta de entrada y el motivo se anota en `registro.log`.
 
