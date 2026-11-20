@@ -389,7 +389,9 @@ def clave_api(config):
 def orden_procesar(config):
     proveedores = cargar_json(PROVEEDORES_FILE)
     entrada = Path(config["carpeta_entrada"])
-    pdfs = sorted(p for p in entrada.iterdir() if p.suffix.lower() == ".pdf") if entrada.exists() else []
+    for c in ("carpeta_entrada", "carpeta_gestionadas", "carpeta_revisar"):
+        Path(config[c]).mkdir(parents=True, exist_ok=True)
+    pdfs = sorted(p for p in entrada.iterdir() if p.suffix.lower() == ".pdf")
     if not pdfs:
         print(f"No hay facturas PDF en {entrada}")
         return
