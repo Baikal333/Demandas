@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [
+          "src/index.html"
+        ],
+        "createdAt": "2026-11-22T12:29:19.703Z",
+        "reason": "Claude: src/index.html loads its CSS through the build placeholder /*INLINE:styles.css*/, so the detector sees unstyled 16px headings; the built anonimizador.html (26/20/16) scans clean"
+      }
+    ]
+  }
+}
