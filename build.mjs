@@ -11,6 +11,11 @@ html = html.replace(/\/\*INLINE:([^*]+)\*\//g, (_, file) => {
   const code = readFileSync(join(src, file.trim()), 'utf8');
   return code.replace(/<\/(script|style)/gi, '<\\/$1').replace(/<!--/g, '<\\!--');
 });
+// Imágenes incrustadas como data URI (la CSP solo admite img-src data: blob:).
+html = html.replace(/\/\*DATAURI:([^*]+)\*\//g, (_, file) => {
+  const buf = readFileSync(join(src, file.trim()));
+  return 'data:image/png;base64,' + buf.toString('base64');
+});
 const out = join(root, 'anonimizador.html');
 writeFileSync(out, html);
 console.log(`Generado ${out} (${(Buffer.byteLength(html) / 1024 / 1024).toFixed(2)} MB)`);

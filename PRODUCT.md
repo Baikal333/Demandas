@@ -43,7 +43,8 @@ El documento nunca sale del equipo. Todo se procesa en el navegador, en un únic
 
 - Despacho: **Recurre Abogados**. La herramienta es suya y puede llevar su identidad.
 - Logo oficial (aportado por el despacho): `assets/logo-recurre-abogados.png` (PNG 934 × 1034, fondo transparente). Es un emblema hexagonal granate con una balanza de la justicia calada en blanco; debajo, «recurre» en una sans muy gruesa en negro y «abogados» en la misma familia en peso fino. Se usa tal cual: no se redibuja, recolorea ni deforma.
-- Color de marca: el granate del emblema, `#AF082C` (medido en el archivo del logo). No hay más colores corporativos ni tipografía de marca confirmados; tampoco se ha confirmado el nombre de la familia tipográfica del logotipo.
+- Colores corporativos (confirmados por el despacho): **granate, blanco y negro**. El granate es el del emblema, `#AF082C` (medido en el archivo del logo). No hay otros colores de marca; los verdes y rojos claros de la interfaz son solo estados (sustituto, dato original, conexión bloqueada).
+- No se ha confirmado tipografía de marca ni el nombre de la familia del logotipo.
 - Como el HTML es un único archivo sin recursos externos, el logo tiene que ir incrustado (data URI o SVG en línea), nunca enlazado.
 
 ## Evidence on Hand
