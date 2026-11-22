@@ -235,3 +235,78 @@ def test_ia_simulada(tmp_path, monkeypatch):
     assert a.titulo_es == "Velero Etap 26i" and a.iva_pagado is True and a.eslora_m == 7.9
     assert "motor_averiado" in {r.clave for r in a.puntos_debiles}
     assert any(r.etiqueta == "Cuna de varada incluida" for r in a.puntos_fuertes)
+
+
+# ------------------------------------------------------------------ alertas por correo
+ALERTA_LBC = """<html><body><table>
+<tr><td><a href="https://www.leboncoin.fr/"><img src="https://static.lbc/logo.png" width="40"></a></td></tr>
+<tr><td><a href="https://click.lbc-mail.fr/track/abc"><img src="https://img.lbc/ad1.jpg" alt="Voilier Sun Way 25"></a></td>
+    <td><a href="https://click.lbc-mail.fr/track/abc">Voilier Sun Way 25</a><br>7 900 €<br>La Rochelle 17000</td></tr>
+<tr><td><a href="https://www.leboncoin.fr/ad/nautisme/2876543210"><img src="https://img.lbc/ad2.jpg"></a></td>
+    <td><a href="https://www.leboncoin.fr/ad/nautisme/2876543210">Bavaria 32 très bon état</a><br>14 500 €<br>Brest 29200</td></tr>
+<tr><td><a href="https://www.leboncoin.fr/parametres/alertes">Gérer mes alertes</a> · <a href="https://lbc.fr/unsubscribe?x=1">Se désinscrire 0 €</a></td></tr>
+</table></body></html>"""
+
+
+def test_extraer_alerta_leboncoin():
+    from veleros.correo import PORTALES_ALERTA, extraer_anuncios
+    redir = {"https://click.lbc-mail.fr/track/abc": "https://www.leboncoin.fr/ad/nautisme/2871112223?utm_source=alerte"}
+    ads = extraer_anuncios(ALERTA_LBC, "leboncoin", PORTALES_ALERTA, resolver=lambda u: redir.get(u, u))
+    por_id = {a.id_sitio: a for a in ads}
+    assert set(por_id) == {"2871112223", "2876543210"}
+    a = por_id["2871112223"]
+    assert a.url == "https://www.leboncoin.fr/ad/nautisme/2871112223"          # sin parámetros de seguimiento
+    assert a.precio == 7900 and a.titulo == "Voilier Sun Way 25" and "17000" in a.ubicacion
+    assert a.fotos == ["https://img.lbc/ad1.jpg"] and a.pais == "FR" and a.origen == "alerta"
+    assert por_id["2876543210"].precio == 14500
+
+
+def test_remitente_portal():
+    from veleros.correo import PORTALES_ALERTA, portal_del_remitente
+    assert portal_del_remitente("Marktplaats <noreply@mail.marktplaats.nl>", "Nieuwe advertenties", PORTALES_ALERTA) == "marktplaats"
+    assert portal_del_remitente('"leboncoin" <alertes@leboncoin.fr>', "Nouvelles annonces", PORTALES_ALERTA) == "leboncoin"
+    assert portal_del_remitente("Banco <info@banco.es>", "Su extracto", PORTALES_ALERTA) is None
+
+
+def test_lector_imap_simulado(tmp_path, monkeypatch):
+    """Buzón IMAP falso: comprueba solo lectura (readonly + BODY.PEEK) y extracción."""
+    from email.mime.text import MIMEText
+
+    from veleros import correo
+
+    html = """<table><tr><td><a href="https://www.marktplaats.nl/v/watersport-en-boten/zeilboten/m2112233445-etap-26">
+      <img src="https://images.mp/etap.jpg"></a></td><td><a href="https://www.marktplaats.nl/v/watersport-en-boten/zeilboten/m2112233445-etap-26">Etap 26 zeilboot</a>
+      € 8.950,-<br>Lemmer</td></tr></table>"""
+    m1 = MIMEText(html, "html", "utf-8"); m1["From"] = "Marktplaats <noreply@marktplaats.nl>"; m1["Subject"] = "Nieuwe zoekresultaten"
+    m2 = MIMEText("Hola", "plain", "utf-8"); m2["From"] = "Amigo <a@b.es>"; m2["Subject"] = "Cena"
+    llamadas = []
+
+    class ImapFalso:
+        def __init__(self, servidor, puerto): llamadas.append(("conectar", servidor, puerto))
+        def login(self, u, c): llamadas.append(("login", u))
+        def select(self, carpeta, readonly=False): llamadas.append(("select", readonly)); return "OK", [b"2"]
+        def search(self, charset, criterio): return "OK", [b"1 2"]
+        def fetch(self, num, partes):
+            llamadas.append(("fetch", partes))
+            return "OK", [(b"x", (m1 if num == b"1" else m2).as_bytes())]
+        def logout(self): pass
+
+    monkeypatch.setattr(correo.imaplib, "IMAP4_SSL", ImapFalso)
+    (tmp_path / "correo_privado.yaml").write_text("servidor: imap.test\nusuario: u@test\ncontrasena: x\n", "utf-8")
+    lector = correo.LectorAlertas({"dias_atras": 2}, tmp_path)
+    ads = list(lector.buscar())
+    assert len(ads) == 1 and ads[0].sitio == "marktplaats" and ads[0].precio == 8950 and ads[0].pais == "NL"
+    assert ("select", True) in llamadas and all(p == "(BODY.PEEK[])" for k, p, *_ in [c for c in llamadas if c[0] == "fetch"])
+    assert lector.estado["correo-marktplaats"] == {"estado": "ok", "encontrados": 1, "correos": 1}
+
+
+def test_alerta_sin_datos_no_se_descarta():
+    f = CFG["filtros"]
+    a = Anuncio(sitio="leboncoin", pais="FR", id_sitio="1", url="u", titulo="Voilier Sun Way 25", precio=7900, origen="alerta")
+    parsing.completar(a)
+    assert motivo_descarte(a, f) is None                                       # sin eslora ni año: se revisa a mano
+    a.precio = 14500
+    assert "precio" in motivo_descarte(a, f)
+    b = Anuncio(sitio="leboncoin", pais="FR", id_sitio="2", url="u", titulo="Voilier 11 m", descripcion="longueur 11 m", precio=9000, origen="alerta")
+    parsing.completar(b)
+    assert "eslora" in motivo_descarte(b, f)

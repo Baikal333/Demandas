@@ -77,6 +77,7 @@ def cmd_demo(args, cfg):
     cfg["carpeta_datos"] = "demo/datos"
     cfg["informe"]["carpeta"] = "demo/informe"
     cfg["costes"]["geocodificar_online"] = False
+    cfg.setdefault("correo", {})["activar"] = False
     if not args.ia:
         cfg["traduccion"]["motor"] = cfg["traduccion"].get("motor") if args.traducir else "ninguno"
     else:
@@ -106,6 +107,27 @@ def cmd_probar(args, cfg):
     print(f"\n{n} anuncios extraídos de {args.portal}." if n else "\nNo se extrajo ningún anuncio: revise la URL/patrón en config.yaml.")
 
 
+def cmd_probar_correo(args, cfg):
+    from .correo import LectorAlertas
+    ccfg = {**cfg.get("correo", {}), "dias_atras": args.dias}
+    try:
+        lector = LectorAlertas(ccfg, BASE)
+    except (FileNotFoundError, ValueError) as e:
+        sys.exit(str(e))
+    n = 0
+    try:
+        for a in lector.buscar():
+            parsing.completar(a)
+            n += 1
+            print(f"[{n}] {a.sitio}: {a.titulo[:80]} · {a.precio} € · {a.ubicacion}\n     {a.url}  ({len(a.fotos)} fotos)")
+    except Exception as e:  # noqa: BLE001
+        sys.exit(f"No se pudo leer el correo: {e}\nRevise servidor, usuario y contraseña de aplicación en correo_privado.yaml.")
+    for portal, e in lector.estado.items():
+        print(f"{portal}: {e['correos']} correos, {e['encontrados']} anuncios")
+    if not lector.estado:
+        print(f"Conexión correcta, pero no hay alertas de portales en los últimos {args.dias} días.")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="veleros", description="Buscador diario de veleros de ocasión (ES, FR, NL)")
     ap.add_argument("--config", default=str(BASE / "config.yaml"))
@@ -123,7 +145,9 @@ def main(argv=None):
     p = sub.add_parser("probar", help="diagnostica un portal")
     p.add_argument("portal")
     p.add_argument("-n", type=int, default=5)
+    c = sub.add_parser("probar-correo", help="comprueba la lectura de las alertas por correo")
+    c.add_argument("--dias", type=int, default=7)
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
     cfg = cargar_config(Path(args.config))
-    {"ejecutar": cmd_ejecutar, "demo": cmd_demo, "probar": cmd_probar}[args.orden](args, cfg)
+    {"ejecutar": cmd_ejecutar, "demo": cmd_demo, "probar": cmd_probar, "probar-correo": cmd_probar_correo}[args.orden](args, cfg)

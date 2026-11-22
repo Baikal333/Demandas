@@ -133,6 +133,33 @@ def ejecutar(cfg: dict, base: Path, anuncios_entrada: list[Anuncio] | None = Non
                 estado["estado"] = f"error: {type(e).__name__}: {e}"
                 log.exception("Error en %s", nombre)
 
+        if cfg.get("correo", {}).get("activar"):
+            yield from _alertas()
+
+    def _alertas():
+        from .correo import LectorAlertas
+        from .scrapers.base import Scraper
+        from .scrapers.portales import _completar_desde_ficha
+        try:
+            lector = LectorAlertas(cfg["correo"], base)
+        except Exception as e:  # noqa: BLE001
+            res.por_portal["correo"] = {"estado": f"error: {e}", "encontrados": 0}
+            log.error("Alertas por correo: %s", e)
+            return
+        try:
+            for a in lector.buscar():
+                if cfg["correo"].get("abrir_anuncios", True):
+                    sc = Scraper(a.sitio, {"pais": a.pais}, http, filtros)
+                    _completar_desde_ficha(sc, a)
+                if a.eslora_m is None or a.anio is None or len(a.descripcion) < 150:
+                    a.avisos.append("Datos incompletos: el portal no dejó abrir el anuncio. Revise eslora, año y CE en el enlace.")
+                yield a
+        except Exception as e:  # noqa: BLE001
+            res.por_portal["correo"] = {"estado": f"error: {type(e).__name__}: {e}", "encontrados": 0}
+            log.exception("Error leyendo el correo")
+        finally:
+            res.por_portal.update(lector.estado)
+
     vistos: set[str] = set()
     for a in fuentes():
         parsing.completar(a)

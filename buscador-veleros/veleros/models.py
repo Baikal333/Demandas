@@ -33,6 +33,7 @@ class Anuncio:
     vendedor_profesional: bool | None = None
     fecha_publicacion: str | None = None
     caracteristicas: dict[str, str] = field(default_factory=dict)
+    origen: str = "web"          # "web" (búsqueda en el portal) | "alerta" (correo de alerta)
 
     # --- resultados del análisis ---
     titulo_es: str = ""

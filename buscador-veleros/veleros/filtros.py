@@ -9,6 +9,10 @@ from .parsing import normalizar
 
 def motivo_descarte(a: Anuncio, f: dict) -> str | None:
     """Devuelve el motivo por el que se descarta el anuncio, o None si pasa los filtros."""
+    if a.origen == "alerta" and f.get("alertas_permitir_datos_incompletos", True):
+        # Del correo solo sabemos título, precio y foto: si no se pudo abrir el anuncio,
+        # no se descarta por falta de datos (se marca "revisar") pero sí por datos contrarios.
+        f = {**f, "descartar_sin_eslora": False, "descartar_sin_anio": False, "exigir_palabra_vela": False}
     texto = normalizar(a.titulo + " " + a.descripcion[:600])
     for palabra in f.get("excluir_palabras", []):
         if re.search(r"\b" + re.escape(normalizar(palabra)), texto):

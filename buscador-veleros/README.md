@@ -42,6 +42,25 @@ El informe se guarda en `informes/veleros-AAAA-MM-DD.html`. El último informe t
 
 **Windows**: abra el Programador de tareas, cree una tarea básica diaria y elija como acción `ejecutar_diario.bat`.
 
+## Alertas por correo (Francia y Países Bajos)
+
+Leboncoin, Youboat, Botentekoop, Marktplaats y Band of Boats bloquean las búsquedas automáticas. Para esos portales, el programa lee los **correos de alerta** que envían ellos mismos.
+
+1. **Cree una cuenta de Gmail solo para las alertas** (recomendado).
+2. **Cree una contraseña de aplicación** para esa cuenta:
+   - active la verificación en dos pasos en https://myaccount.google.com/security;
+   - cree la contraseña en https://myaccount.google.com/apppasswords. Son 16 letras.
+3. **Rellene sus datos**: copie `correo_privado.ejemplo.yaml` como `correo_privado.yaml` y escriba el correo y la contraseña de aplicación. Este archivo no se sube a GitHub.
+4. **Cree una alerta en cada portal**, con su cuenta y ese correo: velero, precio hasta 10.000 €, eslora de 7 a 10 m (o de 23 a 33 pies) y aviso por email diario.
+   - Leboncoin: busque «voilier» en Nautisme, aplique los filtros y pulse «Sauvegarder la recherche».
+   - Marktplaats: busque «zeilboot» en Watersport en Boten, aplique los filtros y pulse «Zoekopdracht opslaan».
+   - Youboat, Botentekoop y Band of Boats: busque, aplique los filtros y pulse «Créer une alerte» o «Zoekopdracht opslaan».
+5. **Compruébelo** con `python -m veleros probar-correo`.
+
+El buzón se abre en **solo lectura**: el programa no borra, no mueve y no marca como leído ningún correo.
+
+Para cada anuncio de una alerta, el programa intenta abrir la página del anuncio y leer la descripción completa y todas las fotos. Si el portal no lo permite, el anuncio aparece con lo que trae el correo (título, precio y foto) y la etiqueta **«Revisar datos»**. En ese caso no se descarta por falta de eslora o de año, pero sí si el precio o la eslora están fuera de rango.
+
 ## Configuración (`config.yaml`)
 
 Todo se ajusta sin tocar el código:
@@ -94,8 +113,8 @@ Los pesos de cada rasgo están en `veleros/analisis.py`.
 | País | Portales |
 |---|---|
 | España | Wallapop, Milanuncios, Cosas de Barcos (Boat24 desactivado por defecto) |
-| Francia | Leboncoin, Band of Boats, Youboat |
-| Países Bajos | Marktplaats, Botentekoop |
+| Francia | Leboncoin, Band of Boats, Youboat (por alertas por correo) |
+| Países Bajos | Marktplaats, Botentekoop (por alertas por correo) |
 
 Para añadir un portal sin programar, añada en `sitios` un bloque como este:
 

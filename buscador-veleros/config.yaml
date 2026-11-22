@@ -15,6 +15,7 @@ filtros:
   descartar_sin_anio: true   # si no consta el año ni el CE, se descarta
   descartar_sin_eslora: true
   descartar_sin_precio: true
+  alertas_permitir_datos_incompletos: true   # anuncios de alertas que no se pueden abrir: no se descartan por falta de datos
   exigir_palabra_vela: true  # el anuncio debe contener alguna de "palabras_vela"
   palabras_vela: [velero, vela, veleiro, voilier, voile, quillard, deriveur, zeilboot, zeiljacht, zeil, kajuitzeiler,
                   sailboat, sailing, sloop, ketch, yawl, cutter, catamaran, mastil, jarcia, genova, gréement, mât, tuigage, fok, genua]
@@ -50,6 +51,20 @@ red:
   timeout: 30
 
 carpeta_datos: datos
+
+# ---------------------------------------------------------------------
+#  ALERTAS POR CORREO (para los portales que bloquean la búsqueda automática)
+#  1. En cada portal guarde una búsqueda (velero, hasta 10.000 €, 7-10 m) y active el aviso por email.
+#  2. Copie correo_privado.ejemplo.yaml como correo_privado.yaml y ponga su correo y contraseña de aplicación.
+#  3. Compruébelo con:  python -m veleros probar-correo
+#  El buzón se abre en SOLO LECTURA: no se borra, mueve ni marca como leído ningún correo.
+# ---------------------------------------------------------------------
+correo:
+  activar: true
+  archivo_credenciales: correo_privado.yaml
+  dias_atras: 2              # lee los avisos recibidos en los últimos N días
+  abrir_anuncios: true       # intenta abrir cada anuncio para leer la descripción completa y todas las fotos
+  portales: [leboncoin, marktplaats, youboat, botentekoop, bandofboats, boat24, milanuncios, cosasdebarcos]
 
 # ---------------------------------------------------------------------
 #  COSTES (estimaciones; confirme con su gestoría náutica)
@@ -149,6 +164,7 @@ sitios:
 
   # ---------------- Francia
   leboncoin:
+    activo: false            # bloquea la búsqueda automática: se recibe por ALERTAS POR CORREO
     tipo: leboncoin
     pais: FR
     idioma: fr
@@ -156,12 +172,14 @@ sitios:
     terminos: [voilier]
     paginas: 3
   bandofboats:
+    activo: false            # bloquea la búsqueda automática: se recibe por ALERTAS POR CORREO
     tipo: generico
     pais: FR
     idioma: fr
     listados: ["https://www.bandofboats.com/fr/recherche?type=voilier&prix_max={precio_max}&page={pagina}"]
     paginas: 3
   youboat:
+    activo: false            # bloquea la búsqueda automática: se recibe por ALERTAS POR CORREO
     tipo: generico
     pais: FR
     idioma: fr
@@ -170,12 +188,14 @@ sitios:
 
   # ---------------- Países Bajos
   marktplaats:
+    activo: false            # bloquea la búsqueda automática: se recibe por ALERTAS POR CORREO
     tipo: marktplaats
     pais: NL
     idioma: nl
     terminos: [zeilboot, zeiljacht, kajuitzeilboot]
     paginas: 2
   botentekoop:
+    activo: false            # bloquea la búsqueda automática: se recibe por ALERTAS POR CORREO
     tipo: generico
     pais: NL
     idioma: nl

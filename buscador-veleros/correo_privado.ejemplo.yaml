@@ -1,0 +1,14 @@
+# Copie este archivo como  correo_privado.yaml  y rellénelo.
+# correo_privado.yaml NO se sube a GitHub (está en .gitignore).
+#
+# Recomendado: una cuenta de Gmail creada solo para las alertas de barcos.
+# Gmail exige una "contraseña de aplicación" (no su contraseña normal):
+#   1) Active la verificación en dos pasos: https://myaccount.google.com/security
+#   2) Cree la contraseña de aplicación:     https://myaccount.google.com/apppasswords
+#   3) Pegue aquí las 16 letras (con o sin espacios).
+
+servidor: imap.gmail.com     # Gmail: imap.gmail.com · Yahoo: imap.mail.yahoo.com · otros: pregunte a su proveedor
+puerto: 993
+usuario: su.cuenta.de.alertas@gmail.com
+contrasena: "abcd efgh ijkl mnop"
+carpetas: [INBOX]            # en Gmail también puede añadir "[Gmail]/Todos" si las alertas se archivan solas
