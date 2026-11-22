@@ -1,0 +1,183 @@
+# =====================================================================
+#  Buscador diario de veleros · configuración
+#  Todo lo que aparece aquí se puede ajustar sin tocar el código.
+# =====================================================================
+
+filtros:
+  eslora_min: 7.0            # metros (eslora total)
+  eslora_max: 10.0
+  precio_max: 10000          # €; se descartan los más caros
+  precio_min: 500            # descarta precios simbólicos (1 €, "a consultar")
+  anio_minimo: 1996          # "modelos muy antiguos": anteriores a este año se descartan
+  exigir_ce: true            # exigir marcado CE
+  anio_ce_obligatorio: 1998  # desde el 16/06/1998 el marcado CE es obligatorio (Directiva 94/25/CE);
+                             # los de 1996-1997 solo pasan si el anuncio menciona CE / categoría de diseño
+  descartar_sin_anio: true   # si no consta el año ni el CE, se descarta
+  descartar_sin_eslora: true
+  descartar_sin_precio: true
+  exigir_palabra_vela: true  # el anuncio debe contener alguna de "palabras_vela"
+  palabras_vela: [velero, vela, veleiro, voilier, voile, quillard, deriveur, zeilboot, zeiljacht, zeil, kajuitzeiler,
+                  sailboat, sailing, sloop, ketch, yawl, cutter, catamaran, mastil, jarcia, genova, gréement, mât, tuigage, fok, genua]
+  excluir_palabras: [lancha, semirrigida, semirígida, neumatica, neumática, kayak, "moto de agua", motora, "bateau moteur",
+                     "bateau à moteur", semi-rigide, pneumatique, jet-ski, motorboot, speedboot, sloep, rubberboot,
+                     "solo remolque", "remorque seule", "alleen trailer", "mât seul", busco, "recherche voilier", gezocht,
+                     alquiler, verhuur, "plaza de amarre", "amarre en venta", "ligplaats te koop", "anneau à vendre",
+                     maqueta, maquette, modelbouw, "radio control", optimist, laser, "hobie cat"]
+
+informe:
+  n_mejores: 15              # mejores ofertas por país
+  carpeta: informes
+  descargar_fotos: false     # true = guarda una copia local de todas las fotos (el informe funciona aunque se retire el anuncio)
+  max_fotos: 60
+
+traduccion:
+  motor: google              # google (gratis, sin clave) | claude (mejor calidad, de pago) | ninguno
+
+ia:                          # Análisis con Claude: traducción + puntos fuertes/débiles más finos
+  activar: false             # o ejecute con --ia ; necesita ANTHROPIC_API_KEY (o `ant auth login`)
+  modelo: claude-opus-5-5
+  esfuerzo: low              # low | medium | high
+
+puntuacion:
+  factor_fuertes: 1.0
+  factor_debiles: 1.0
+  euros_por_metro_referencia: 1000
+  bonus_nuevo: 1
+
+red:
+  pausa_segundos: [2, 5]     # pausa aleatoria entre peticiones (sea respetuoso con los portales)
+  respetar_robots: true
+  timeout: 30
+
+carpeta_datos: datos
+
+# ---------------------------------------------------------------------
+#  COSTES (estimaciones; confirme con su gestoría náutica)
+# ---------------------------------------------------------------------
+costes:
+  destino:                   # puerto de destino del traslado
+    nombre: Valencia
+    lat: 39.46
+    lon: -0.33
+  geocodificar_online: true  # localiza pueblos/puertos no incluidos en la tabla interna con OpenStreetMap
+  calcular_bandera_polaca: true
+
+  inspeccion_previa:
+    peritaje: 450            # perito náutico antes de comprar (recomendado)
+    viaje: 350               # viaje para ver el barco en Francia / Países Bajos
+    viaje_nacional: 150
+
+  fiscalidad_espana:
+    itp_comunidad: "tipo general"
+    itp_tipo: 0.04           # ITP (modelo 620) en compra a particular. Ajuste al tipo de SU comunidad autónoma
+                             # (varias aplican tipos superiores a embarcaciones de recreo).
+    iedmt_tipo: 0.12         # Impuesto especial s/ determinados medios de transporte (modelo 576)
+    iedmt_eslora_umbral_m: 8 # embarcaciones de recreo de eslora ≤ 8 m: no sujetas
+    base_minima_eur: 0       # si conoce el valor de las tablas de Hacienda (Orden HFP de precios medios), póngalo aquí
+    vendedor_profesional_factura_iva: true
+
+  abanderamiento_espana:
+    tasas_capitania: 120     # abanderamiento + asignación de matrícula
+    inspeccion_eci: 450      # reconocimiento inicial por Entidad Colaboradora de Inspección
+    gestoria: 400
+    traduccion_jurada: 200   # factura de compra, registro de origen, declaración CE...
+    cambio_titularidad: 250  # barco ya español
+    evaluacion_posconstruccion_ce: 2500
+    seguro_rc_anual: 180
+    baja_origen:             # baja en el registro del país de origen
+      FR: 0                  # radiación de la francisation (gratuita)
+      NL: 0                  # la mayoría de barcos holandeses no están registrados
+      PL: 50
+      BE: 50
+      DE: 50
+      GB: 100
+
+  abanderamiento_polonia:
+    tasa_registro: 100       # inscripción en el registro polaco de embarcaciones de recreo
+    gestoria: 300            # representante/gestor (muchos españoles lo tramitan a distancia)
+    traduccion_jurada: 150
+    cambio_propietario: 200  # si el barco ya tiene bandera polaca
+    pcc_tipo: 0.0            # impuesto PCC 2 %: solo si el contrato se firma en Polonia o el barco está allí
+    seguro_rc_anual: 150
+
+  traslado:                  # transporte por carretera en camión góndola
+    eur_km_normal: 1.9
+    eur_km_especial: 2.8     # manga > 2,55 m: transporte especial
+    manga_max_sin_permiso_m: 2.55
+    eslora_transporte_especial_m: 10.5
+    permiso_especial: 400
+    grua_origen: 350
+    grua_destino: 350
+    mastil: 300              # desarbolar / arbolar
+    cuna: 250
+    eur_km_remolque_propio: 0.45   # si el barco se vende con remolque
+
+# ---------------------------------------------------------------------
+#  PORTALES
+#  tipo: wallapop | milanuncios | leboncoin | marktplaats | generico
+#  En los "generico", {pagina} y {precio_max} se sustituyen automáticamente.
+#  Si un portal cambia su web, ajuste aquí la URL o el patron_enlace y
+#  compruébelo con:  python -m veleros probar <nombre>
+# ---------------------------------------------------------------------
+sitios:
+  # ---------------- España
+  wallapop:
+    tipo: wallapop
+    pais: ES
+    idioma: es
+    terminos: [velero, "barco velero", "velero crucero"]
+    paginas: 3
+  milanuncios:
+    tipo: milanuncios
+    pais: ES
+    idioma: es
+    listados: ["https://www.milanuncios.com/veleros/?hasta={precio_max}&pagina={pagina}"]
+    paginas: 3
+  cosasdebarcos:
+    tipo: generico
+    pais: ES
+    idioma: es
+    listados: ["https://www.cosasdebarcos.com/barcos-ocasion/veleros/?precio_max={precio_max}&pagina={pagina}"]
+    paginas: 3
+  boat24_es:
+    activo: false            # actívelo si quiere más resultados; ajuste la URL de búsqueda
+    tipo: generico
+    pais: ES
+    idioma: es
+    listados: ["https://www.boat24.com/es/veleros/?land=es&prs_max={precio_max}&page={pagina}"]
+    paginas: 2
+
+  # ---------------- Francia
+  leboncoin:
+    tipo: leboncoin
+    pais: FR
+    idioma: fr
+    categoria: "7"           # Nautisme
+    terminos: [voilier]
+    paginas: 3
+  bandofboats:
+    tipo: generico
+    pais: FR
+    idioma: fr
+    listados: ["https://www.bandofboats.com/fr/recherche?type=voilier&prix_max={precio_max}&page={pagina}"]
+    paginas: 3
+  youboat:
+    tipo: generico
+    pais: FR
+    idioma: fr
+    listados: ["https://www.youboat.com/fr/bateaux-occasion/voilier/?prix_max={precio_max}&page={pagina}"]
+    paginas: 3
+
+  # ---------------- Países Bajos
+  marktplaats:
+    tipo: marktplaats
+    pais: NL
+    idioma: nl
+    terminos: [zeilboot, zeiljacht, kajuitzeilboot]
+    paginas: 2
+  botentekoop:
+    tipo: generico
+    pais: NL
+    idioma: nl
+    listados: ["https://www.botentekoop.nl/zeilboten/?prijs_tot={precio_max}&pagina={pagina}"]
+    paginas: 3

@@ -1,0 +1,9 @@
+datos/
+informes/
+registros/
+demo/datos/
+demo/informe/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

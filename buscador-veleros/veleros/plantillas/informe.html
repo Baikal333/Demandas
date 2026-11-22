@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veleros {{ fecha }}</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--txt:#1d2733;--sub:#5b6875;--borde:#dde3e9;--azul:#0d5c91;--verde:#1b7f4b;--verde-bg:#e3f4ea;--rojo:#b3261e;--rojo-bg:#fbe7e5;--ambar:#8a5a00;--ambar-bg:#fff3d6}
+@media (prefers-color-scheme:dark){:root{--bg:#11161c;--card:#1a2129;--txt:#e6edf3;--sub:#9aa7b4;--borde:#2c3640;--azul:#5fb0e8;--verde:#5fd08f;--verde-bg:#16301f;--rojo:#f08a82;--rojo-bg:#3a1a18;--ambar:#f2c35b;--ambar-bg:#33290f}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+header{padding:20px 16px 8px;max-width:1200px;margin:auto}h1{margin:0 0 4px;font-size:24px}.sub{color:var(--sub);font-size:13px}
+nav{position:sticky;top:0;background:var(--bg);z-index:5;border-bottom:1px solid var(--borde)}
+nav .in{max-width:1200px;margin:auto;padding:8px 16px;display:flex;gap:8px;flex-wrap:wrap}
+nav a{padding:6px 14px;border-radius:20px;border:1px solid var(--borde);color:var(--txt);text-decoration:none;font-weight:600;font-size:14px}
+nav a:hover{border-color:var(--azul)}main{max-width:1200px;margin:auto;padding:8px 16px 60px}
+h2{margin:28px 0 12px;font-size:20px}.vacio{background:var(--card);border:1px dashed var(--borde);border-radius:10px;padding:18px;color:var(--sub)}
+.card{background:var(--card);border:1px solid var(--borde);border-radius:12px;margin:0 0 18px;overflow:hidden}
+.cab{display:flex;gap:14px;padding:14px 16px;align-items:flex-start}
+.pos{flex:none;width:44px;height:44px;border-radius:50%;background:var(--azul);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px}
+.tit{flex:1;min-width:0}.tit h3{margin:0 0 4px;font-size:17px;overflow-wrap:anywhere}.tit .meta{color:var(--sub);font-size:13px}
+.nota{flex:none;text-align:right}.nota b{font-size:22px;display:block}.nota span{font-size:12px;color:var(--sub)}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;margin:0 4px 4px 0}
+.nuevo{background:var(--azul);color:#fff}.f{background:var(--verde-bg);color:var(--verde)}.d{background:var(--rojo-bg);color:var(--rojo)}.a{background:var(--ambar-bg);color:var(--ambar)}
+.cuerpo{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;padding:0 16px 16px}
+@media (max-width:820px){.cuerpo{grid-template-columns:1fr}.cab{flex-wrap:wrap}.tit{flex:1 1 calc(100% - 60px)}.nota{text-align:left;padding-left:58px}}
+.datos{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin:0 0 10px}
+.datos div{background:var(--bg);border-radius:8px;padding:6px 8px}.datos small{display:block;color:var(--sub);font-size:11px}
+.rasgos h4,.costes h4{margin:10px 0 6px;font-size:14px}.ev{color:var(--sub);font-size:12px;margin:-2px 0 6px 2px}
+.galeria{display:flex;gap:6px;overflow-x:auto;padding:0 16px 14px;scroll-snap-type:x mandatory}
+.galeria img{height:130px;width:auto;border-radius:8px;cursor:zoom-in;scroll-snap-align:start;background:var(--bg);flex:none}
+table{width:100%;border-collapse:collapse;font-size:13px}td{padding:3px 4px;border-bottom:1px solid var(--borde);vertical-align:top}td.n{text-align:right;white-space:nowrap}
+tr.tot td{font-weight:700;border-bottom:2px solid var(--txt)}.esc{margin-bottom:10px}
+details{padding:0 16px 12px}summary{cursor:pointer;color:var(--azul);font-weight:600;font-size:14px}.texto{white-space:pre-wrap;font-size:14px;background:var(--bg);padding:10px;border-radius:8px;max-height:420px;overflow:auto}
+a.ver{color:var(--azul);font-weight:600}.avisos{font-size:12px;color:var(--ambar);margin:6px 0 0;padding-left:18px}
+.resumen{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}.resumen .card{padding:12px 14px;margin:0}
+#lb{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:20}
+#lb img{max-width:96vw;max-height:88vh}#lb button{position:absolute;background:none;border:0;color:#fff;font-size:42px;cursor:pointer;padding:10px}
+#lb .x{top:6px;right:12px}#lb .p{left:6px}#lb .s{right:6px}#lb .c{position:absolute;bottom:12px;color:#ddd;font-size:13px}
+.legal{color:var(--sub);font-size:12px;margin-top:30px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Veleros de ocasión · {{ fecha_larga }}</h1>
+  <div class="sub">Eslora {{ f.eslora_min }}–{{ f.eslora_max }} m · precio ≤ {{ eur(f.precio_max) }} · desde {{ f.anio_minimo }} con marcado CE{% if f.exigir_ce %} (obligatorio desde {{ f.anio_ce_obligatorio }}){% endif %} · destino del traslado: {{ destino }} · {{ total_analizados }} anuncios válidos de {{ total_vistos }} revisados</div>
+</header>
+<nav><div class="in">
+{% for p, nombre in paises.items() %}<a href="#{{ p }}">{{ bandera(p) }} {{ nombre }} ({{ top[p]|length }})</a>{% endfor %}
+<a href="#resumen">Resumen del día</a>
+</div></nav>
+<main>
+{% for p, nombre in paises.items() %}
+<h2 id="{{ p }}">{{ bandera(p) }} {{ nombre }} — {{ top[p]|length }} mejores ofertas</h2>
+{% if not top[p] %}<div class="vacio">Hoy no hay anuncios de {{ nombre }} que pasen los filtros (revise el resumen del día: puede que algún portal haya bloqueado la búsqueda).</div>{% endif %}
+{% for a in top[p] %}
+<article class="card" id="{{ a.sitio }}-{{ a.id_sitio }}">
+  <div class="cab">
+    <div class="pos">{{ loop.index }}</div>
+    <div class="tit">
+      <h3>{{ a.titulo_es or a.titulo }}</h3>
+      <div class="meta">{{ a.sitio }} · {{ a.ubicacion or "ubicación no indicada" }}{% if a.fecha_publicacion %} · publicado {{ a.fecha_publicacion[:10] }}{% endif %} · <a class="ver" href="{{ a.url }}" target="_blank" rel="noopener">Ver anuncio original ↗</a></div>
+      <div style="margin-top:6px">{% if a.nuevo %}<span class="tag nuevo">NUEVO HOY</span>{% endif %}{% if a.iva_pagado %}<span class="tag f">IVA pagado</span>{% endif %}{% if a.ce == "si" %}<span class="tag f">CE</span>{% elif a.ce == "desconocido" %}<span class="tag a">CE sin confirmar</span>{% endif %}{% if a.vendedor_profesional %}<span class="tag a">Profesional</span>{% endif %}</div>
+    </div>
+    <div class="nota"><b>{{ eur(a.precio) }}</b><span>Coste total est. {{ eur(a.costes.mejor_total) }}</span><br><span>Puntuación {{ a.puntuacion|round|int }}/100</span></div>
+  </div>
+  {% set fotos = a.fotos_locales or a.fotos %}
+  {% if fotos %}<div class="galeria" data-galeria>{% for u in fotos %}<img loading="lazy" src="{{ u }}" alt="Foto {{ loop.index }}" referrerpolicy="no-referrer">{% endfor %}</div>
+  <div class="sub" style="padding:0 16px 8px">{{ fotos|length }} fotos publicadas · pulse una para ampliar</div>{% endif %}
+  <div class="cuerpo">
+    <div>
+      <div class="datos">
+        <div><small>Eslora</small>{{ "%.2f m"|format(a.eslora_m) if a.eslora_m else "—" }}</div>
+        <div><small>Manga</small>{{ "%.2f m"|format(a.manga_m) if a.manga_m else "—" }}</div>
+        <div><small>Año</small>{{ a.anio or "—" }}</div>
+        <div><small>Bandera</small>{{ a.bandera or "no consta" }}</div>
+        <div><small>€ / metro</small>{{ eur(a.precio / a.eslora_m) if a.precio and a.eslora_m else "—" }}</div>
+        <div><small>Traslado</small>{{ a.costes.traslado.km }} km</div>
+      </div>
+      <p style="margin:0 0 8px">{{ a.resumen_es }}</p>
+      <div class="rasgos">
+        <h4>Puntos fuertes ({{ a.puntos_fuertes|length }})</h4>
+        {% for r in a.puntos_fuertes %}<span class="tag f" title="{{ r.evidencia }}">+ {{ r.etiqueta }}</span>{% else %}<span class="sub">No se mencionan.</span>{% endfor %}
+        <h4>Puntos débiles ({{ a.puntos_debiles|length }})</h4>
+        {% for r in a.puntos_debiles %}<span class="tag d" title="{{ r.evidencia }}">− {{ r.etiqueta }}</span>{% if r.evidencia %}<div class="ev">«{{ r.evidencia }}»</div>{% endif %}{% else %}<span class="sub">No se mencionan (pregunte por el estado del motor, casco y jarcia).</span>{% endfor %}
+      </div>
+      {% if a.avisos %}<ul class="avisos">{% for av in a.avisos %}<li>{{ av }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="costes">
+      {% for e in a.costes.escenarios %}
+      <div class="esc"><h4>{{ e.nombre }}{% if e.nombre == a.costes.mejor_escenario %} <span class="tag f">más barato</span>{% endif %}</h4>
+      <table>
+        <tr><td>Precio de compra</td><td class="n">{{ eur(a.costes.precio) }}</td></tr>
+        {% for k, v in e.partidas.items() %}<tr><td>{{ k }}</td><td class="n">{{ eur(v) }}</td></tr>{% endfor %}
+        {% for k, v in a.costes.traslado.partidas.items() %}<tr><td>Traslado: {{ k }}</td><td class="n">{{ eur(v) }}</td></tr>{% endfor %}
+        {% for k, v in a.costes.otros.items() %}<tr><td>{{ k }}</td><td class="n">{{ eur(v) }}</td></tr>{% endfor %}
+        <tr class="tot"><td>Total estimado</td><td class="n">{{ eur(e.total) }}</td></tr>
+      </table></div>
+      {% endfor %}
+      <div class="sub">Origen del traslado: {{ a.costes.traslado.precision_origen }}{% if a.costes.traslado.transporte_especial %} · transporte especial (manga/eslora){% endif %}.</div>
+    </div>
+  </div>
+  <details><summary>Anuncio traducido al español</summary><div class="texto">{{ a.descripcion_es or a.descripcion }}</div></details>
+  {% if a.idioma and a.idioma != "es" %}<details><summary>Texto original ({{ a.idioma }})</summary><div class="texto">{{ a.descripcion }}</div></details>{% endif %}
+</article>
+{% endfor %}
+{% endfor %}
+
+<h2 id="resumen">Resumen del día</h2>
+<div class="resumen">
+  <div class="card"><h4 style="margin:0 0 6px">Portales</h4>
+    <table>{% for n, e in portales.items() %}<tr><td>{{ n }}</td><td class="n">{{ e.encontrados }}</td><td>{{ "✔" if e.estado == "ok" else "⚠ " ~ e.estado[:90] }}</td></tr>{% endfor %}</table></div>
+  <div class="card"><h4 style="margin:0 0 6px">Descartados ({{ descartes.values()|sum }})</h4>
+    <table>{% for m, n in descartes.most_common() %}<tr><td>{{ m }}</td><td class="n">{{ n }}</td></tr>{% else %}<tr><td>Ninguno</td></tr>{% endfor %}</table></div>
+</div>
+<p class="legal">Los costes son estimaciones orientativas con los parámetros de <code>config.yaml</code> (ITP según comunidad autónoma, IEDMT para esloras superiores a 8 m, tasas, gestoría y transporte por carretera). Confírmelos con una gestoría náutica antes de comprar. Las traducciones son automáticas. Los puntos fuertes y débiles se deducen del texto del anuncio: un anuncio que no menciona un defecto no garantiza que no exista. Informe generado el {{ generado }}.</p>
+</main>
+<div id="lb"><button class="x" aria-label="Cerrar">×</button><button class="p" aria-label="Anterior">‹</button><img alt=""><button class="s" aria-label="Siguiente">›</button><div class="c"></div></div>
+<script>
+(function(){var lb=document.getElementById('lb'),im=lb.querySelector('img'),c=lb.querySelector('.c'),lista=[],i=0;
+function ver(){im.src=lista[i].src;c.textContent=(i+1)+' / '+lista.length}
+document.querySelectorAll('[data-galeria] img').forEach(function(el){el.addEventListener('click',function(){lista=[].slice.call(el.parentNode.querySelectorAll('img'));i=lista.indexOf(el);ver();lb.style.display='flex'})});
+lb.querySelector('.x').onclick=function(){lb.style.display='none'};lb.onclick=function(e){if(e.target===lb)lb.style.display='none'};
+lb.querySelector('.p').onclick=function(e){e.stopPropagation();i=(i-1+lista.length)%lista.length;ver()};
+lb.querySelector('.s').onclick=function(e){e.stopPropagation();i=(i+1)%lista.length;ver()};
+document.addEventListener('keydown',function(e){if(lb.style.display!=='flex')return;if(e.key==='Escape')lb.style.display='none';if(e.key==='ArrowLeft')lb.querySelector('.p').click();if(e.key==='ArrowRight')lb.querySelector('.s').click()});
+document.querySelectorAll('.galeria img').forEach(function(el){el.addEventListener('error',function(){el.remove()})});})();
+</script>
+</body>
+</html>

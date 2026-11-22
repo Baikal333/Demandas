@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+<rect width="640" height="420" fill="#e4dff2"/><rect y="290" width="640" height="130" fill="#3d7fae"/>
+<path d="M150 300 L490 300 L455 340 L190 340 Z" fill="#5b3c99"/>
+<line x1="320" y1="70" x2="320" y2="300" stroke="#333" stroke-width="5"/>
+<path d="M326 80 L326 290 L470 290 Z" fill="#fff" stroke="#999"/>
+<path d="M314 95 L314 290 L224 290 Z" fill="#f4f4f4" stroke="#999"/>
+<text x="20" y="34" font-family="sans-serif" font-size="22" fill="#222">DEMO · Velero Dufour 2800 de 1997</text>
+<text x="20" y="400" font-family="sans-serif" font-size="18" fill="#fff">foto 4</text></svg>

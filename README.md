@@ -1,6 +1,8 @@
 # Demandas
 Expedientes
 
+> **Nuevo:** [`buscador-veleros/`](buscador-veleros/README.md) — búsqueda diaria de veleros de ocasión en España, Francia y Países Bajos con análisis de estado, costes de abanderamiento y traslado, e informe de las mejores ofertas.
+
 ## Anonimizador local de documentos
 
 `anonimizador.html` es una aplicación web en **un solo archivo** que sustituye los datos personales de un documento por datos ficticios que se reconocen a simple vista. **El archivo nunca sale del equipo**: todo se procesa en el navegador.
