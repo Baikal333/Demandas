@@ -41,7 +41,10 @@ El documento nunca sale del equipo. Todo se procesa en el navegador, en un únic
 
 ## Brand Commitments
 
-Decisión abierta. Ahora mismo la herramienta es neutra, sin nombre ni logo del despacho. En el cuestionario de init se marcaron a la vez «sin marca» y «marca del despacho», y no hay nombre, logo ni colores confirmados. Hasta que se confirme, no se añade identidad del despacho ni se inventa.
+- Despacho: **Recurre Abogados**. La herramienta es suya y puede llevar su identidad.
+- Logo oficial (aportado por el despacho): `assets/logo-recurre-abogados.png` (PNG 934 × 1034, fondo transparente). Es un emblema hexagonal granate con una balanza de la justicia calada en blanco; debajo, «recurre» en una sans muy gruesa en negro y «abogados» en la misma familia en peso fino. Se usa tal cual: no se redibuja, recolorea ni deforma.
+- Color de marca: el granate del emblema, `#AF082C` (medido en el archivo del logo). No hay más colores corporativos ni tipografía de marca confirmados; tampoco se ha confirmado el nombre de la familia tipográfica del logotipo.
+- Como el HTML es un único archivo sin recursos externos, el logo tiene que ir incrustado (data URI o SVG en línea), nunca enlazado.
 
 ## Evidence on Hand
 
