@@ -36,6 +36,7 @@ a.ver{color:var(--azul);font-weight:600}.avisos{font-size:12px;color:var(--ambar
 #lb{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:20}
 #lb img{max-width:96vw;max-height:88vh}#lb button{position:absolute;background:none;border:0;color:#fff;font-size:42px;cursor:pointer;padding:10px}
 #lb .x{top:6px;right:12px}#lb .p{left:6px}#lb .s{right:6px}#lb .c{position:absolute;bottom:12px;color:#ddd;font-size:13px}
+.casi-tit{margin:26px 0 4px;font-size:17px;color:var(--ambar)}.casi .card{border-style:dashed}.casi .pos{background:var(--ambar)}
 .legal{color:var(--sub);font-size:12px;margin-top:30px}
 </style>
 </head>
@@ -48,14 +49,10 @@ a.ver{color:var(--azul);font-weight:600}.avisos{font-size:12px;color:var(--ambar
 {% for p, nombre in paises.items() %}<a href="#{{ p }}">{{ bandera(p) }} {{ nombre }} ({{ top[p]|length }})</a>{% endfor %}
 <a href="#resumen">Resumen del día</a>
 </div></nav>
-<main>
-{% for p, nombre in paises.items() %}
-<h2 id="{{ p }}">{{ bandera(p) }} {{ nombre }} — {{ top[p]|length }} mejores ofertas</h2>
-{% if not top[p] %}<div class="vacio">Hoy no hay anuncios de {{ nombre }} que pasen los filtros (revise el resumen del día: puede que algún portal haya bloqueado la búsqueda).</div>{% endif %}
-{% for a in top[p] %}
+{% macro tarjeta(a, pos) %}
 <article class="card" id="{{ a.sitio }}-{{ a.id_sitio }}">
   <div class="cab">
-    <div class="pos">{{ loop.index }}</div>
+    <div class="pos">{{ pos }}</div>
     <div class="tit">
       <h3>{{ a.titulo_es or a.titulo }}</h3>
       <div class="meta">{{ a.sitio }} · {{ a.ubicacion or "ubicación no indicada" }}{% if a.fecha_publicacion %} · publicado {{ a.fecha_publicacion[:10] }}{% endif %} · <a class="ver" href="{{ a.url }}" target="_blank" rel="noopener">Ver anuncio original ↗</a></div>
@@ -64,7 +61,7 @@ a.ver{color:var(--azul);font-weight:600}.avisos{font-size:12px;color:var(--ambar
     <div class="nota"><b>{{ eur(a.precio) }}</b><span>Coste total est. {{ eur(a.costes.mejor_total) }}</span><br><span>Puntuación {{ a.puntuacion|round|int }}/100</span></div>
   </div>
   {% set fotos = a.fotos_locales or a.fotos %}
-  {% if fotos %}<div class="galeria" data-galeria>{% for u in fotos %}<img loading="lazy" src="{{ u }}" alt="Foto {{ loop.index }}" referrerpolicy="no-referrer">{% endfor %}</div>
+  {% if fotos %}<div class="galeria" data-galeria>{% for u in fotos %}<img loading="lazy" src="{{ u }}" alt="Foto {{ pos }}" referrerpolicy="no-referrer">{% endfor %}</div>
   <div class="sub" style="padding:0 16px 8px">{{ fotos|length }} fotos publicadas · pulse una para ampliar</div>{% endif %}
   <div class="cuerpo">
     <div>
@@ -102,7 +99,17 @@ a.ver{color:var(--azul);font-weight:600}.avisos{font-size:12px;color:var(--ambar
   <details><summary>Anuncio traducido al español</summary><div class="texto">{{ a.descripcion_es or a.descripcion }}</div></details>
   {% if a.idioma and a.idioma != "es" %}<details><summary>Texto original ({{ a.idioma }})</summary><div class="texto">{{ a.descripcion }}</div></details>{% endif %}
 </article>
-{% endfor %}
+{% endmacro %}
+<main>
+{% for p, nombre in paises.items() %}
+<h2 id="{{ p }}">{{ bandera(p) }} {{ nombre }} — {{ top[p]|length }} mejores ofertas</h2>
+{% if not top[p] %}<div class="vacio">Hoy no hay anuncios de {{ nombre }} que pasen los filtros (revise el resumen del día: puede que algún portal haya bloqueado la búsqueda).</div>{% endif %}
+{% for a in top[p] %}{{ tarjeta(a, loop.index) }}{% endfor %}
+{% if casi[p] %}
+<h3 class="casi-tit">Casi: {{ casi[p]|length }} {{ "oferta" if casi[p]|length == 1 else "ofertas" }} de {{ nombre }} fuera de sus límites por poco</h3>
+<p class="sub">Precio hasta {{ eur(casi_cfg.precio_max) }} o eslora de {{ casi_cfg.eslora_min }} a {{ casi_cfg.eslora_max }} m. Pueden interesar si el vendedor negocia el precio.</p>
+<div class="casi">{% for a in casi[p] %}{{ tarjeta(a, "≈") }}{% endfor %}</div>
+{% endif %}
 {% endfor %}
 
 <h2 id="resumen">Resumen del día</h2>
@@ -112,6 +119,7 @@ a.ver{color:var(--azul);font-weight:600}.avisos{font-size:12px;color:var(--ambar
   <div class="card"><h4 style="margin:0 0 6px">Descartados ({{ descartes.values()|sum }})</h4>
     <table>{% for m, n in descartes.most_common() %}<tr><td>{{ m }}</td><td class="n">{{ n }}</td></tr>{% else %}<tr><td>Ninguno</td></tr>{% endfor %}</table></div>
 </div>
+<p class="sub" style="margin-top:12px">Lista completa de anuncios descartados, con el motivo y el enlace (se abre con Excel): <a class="ver" href="{{ csv_descartados }}">{{ csv_descartados }}</a></p>
 <p class="legal">Los costes son estimaciones orientativas con los parámetros de <code>config.yaml</code> (ITP según comunidad autónoma, IEDMT para esloras superiores a 8 m, tasas, gestoría y transporte por carretera). Confírmelos con una gestoría náutica antes de comprar. Las traducciones son automáticas. Los puntos fuertes y débiles se deducen del texto del anuncio: un anuncio que no menciona un defecto no garantiza que no exista. Informe generado el {{ generado }}.</p>
 </main>
 <div id="lb"><button class="x" aria-label="Cerrar">×</button><button class="p" aria-label="Anterior">‹</button><img alt=""><button class="s" aria-label="Siguiente">›</button><div class="c"></div></div>

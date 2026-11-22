@@ -42,6 +42,11 @@ El informe se guarda en `informes/veleros-AAAA-MM-DD.html`. El último informe t
 
 **Windows**: abra el Programador de tareas, cree una tarea básica diaria y elija como acción `ejecutar_diario.bat`.
 
+## Sección «Casi» y lista de descartados
+
+- **Casi**: en cada país, el informe añade hasta 5 anuncios que quedan fuera de sus límites por poco: hasta 12.000 € o de 6,5 a 10,5 m de eslora. Se analizan igual que el resto y pueden interesar si el vendedor negocia. Estos márgenes se ajustan en la sección `casi` de `config.yaml`, y la sección se quita con `activar: false`.
+- **Descartados**: cada día se guarda `informes/descartados-AAAA-MM-DD.csv`, que se abre con Excel. Contiene cada anuncio descartado con el motivo, el precio, la eslora, el año y el enlace, para comprobar que no se ha descartado ninguno por error.
+
 ## Alertas por correo (Francia y Países Bajos)
 
 Leboncoin, Youboat, Botentekoop, Marktplaats y Band of Boats bloquean las búsquedas automáticas. Para esos portales, el programa lee los **correos de alerta** que envían ellos mismos.

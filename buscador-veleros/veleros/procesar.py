@@ -26,6 +26,8 @@ class Resultado:
         self.analizados: list[Anuncio] = []
         self.descartes: collections.Counter = collections.Counter()
         self.por_portal: dict[str, dict] = {}
+        self.casi: list[Anuncio] = []
+        self.descartados: list[dict] = []     # detalle de cada anuncio descartado (para revisar)
         self.inicio = dt.datetime.now()
 
 
@@ -160,13 +162,26 @@ def ejecutar(cfg: dict, base: Path, anuncios_entrada: list[Anuncio] | None = Non
         finally:
             res.por_portal.update(lector.estado)
 
+    casi_cfg = cfg.get("casi", {})
+    filtros_casi = {**filtros,
+                    "precio_max": casi_cfg.get("precio_max", filtros["precio_max"]),
+                    "eslora_min": casi_cfg.get("eslora_min", filtros["eslora_min"]),
+                    "eslora_max": casi_cfg.get("eslora_max", filtros["eslora_max"])}
     vistos: set[str] = set()
     for a in fuentes():
         parsing.completar(a)
         motivo = motivo_descarte(a, filtros)
+        es_casi = False
         if motivo:
             res.descartes[_agrupar_motivo(motivo)] += 1
-            continue
+            es_casi = casi_cfg.get("activar", True) and motivo_descarte(a, filtros_casi) is None
+            res.descartados.append({
+                "pais": a.pais, "portal": a.sitio, "motivo": motivo, "zona_casi": "sí" if es_casi else "",
+                "titulo": a.titulo[:150], "precio": a.precio, "eslora_m": a.eslora_m, "anio": a.anio, "ce": a.ce, "url": a.url,
+            })
+            if not es_casi:
+                continue
+            a.avisos.insert(0, f"Fuera de sus límites por poco: {motivo}.")
         clave = _clave_duplicado(a)
         if clave in vistos:
             res.descartes["duplicado en otro portal"] += 1
@@ -183,8 +198,27 @@ def ejecutar(cfg: dict, base: Path, anuncios_entrada: list[Anuncio] | None = Non
             a.puntos_fuertes.append(analisis.Rasgo("bajada", "Bajada de precio reciente", 3, f"{precio_ant:.0f} € → {a.precio:.0f} €"))
         analisis.puntuar(a, cfg)
         db.registrar(a, hoy)
-        res.analizados.append(a)
+        (res.casi if es_casi else res.analizados).append(a)
     return res
+
+
+def casi_por_pais(res: Resultado, n: int) -> dict[str, list[Anuncio]]:
+    grupos: dict[str, list[Anuncio]] = {p: [] for p in PAISES}
+    for a in res.casi:
+        grupos.setdefault(a.pais, []).append(a)
+    return {p: sorted(lst, key=lambda a: -a.puntuacion)[:n] for p, lst in grupos.items()}
+
+
+def exportar_descartados(res: Resultado, ruta: Path) -> None:
+    """CSV para Excel (separador ';', UTF-8 con BOM) con cada anuncio descartado y el motivo."""
+    import csv
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    campos = ["pais", "portal", "motivo", "zona_casi", "titulo", "precio", "eslora_m", "anio", "ce", "url"]
+    with open(ruta, "w", encoding="utf-8-sig", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=campos, delimiter=";")
+        w.writeheader()
+        for d in sorted(res.descartados, key=lambda d: (d["pais"], d["motivo"], d["precio"] or 0)):
+            w.writerow({k: ("" if d.get(k) is None else str(d[k]).replace(".", ",") if k in ("precio", "eslora_m") else d[k]) for k in campos})
 
 
 def mejores_por_pais(res: Resultado, n: int) -> dict[str, list[Anuncio]]:

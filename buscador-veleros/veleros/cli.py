@@ -22,7 +22,7 @@ from . import parsing
 from .filtros import motivo_descarte
 from .informe import generar
 from .models import Anuncio
-from .procesar import descargar_fotos, ejecutar, exportar_json, mejores_por_pais
+from .procesar import casi_por_pais, descargar_fotos, ejecutar, exportar_descartados, exportar_json, mejores_por_pais
 from .scrapers import TIPOS, Http
 
 BASE = Path(__file__).resolve().parent.parent
@@ -36,18 +36,24 @@ def cargar_config(ruta: Path) -> dict:
 def _informe(cfg: dict, res, base: Path, fecha: str, abrir: bool) -> Path:
     icfg = cfg.get("informe", {})
     top = mejores_por_pais(res, icfg.get("n_mejores", 15))
+    casi = casi_por_pais(res, cfg.get("casi", {}).get("n_por_pais", 5))
     carpeta = base / icfg.get("carpeta", "informes")
+    exportar_descartados(res, carpeta / f"descartados-{fecha}.csv")
     if icfg.get("descargar_fotos"):
         s = requests.Session()
         s.headers["User-Agent"] = "Mozilla/5.0"
-        for lista in top.values():
+        for lista in list(top.values()) + list(casi.values()):
             for a in lista:
                 descargar_fotos(a, carpeta / "fotos" / f"{a.sitio}-{a.id_sitio}", s, icfg.get("max_fotos", 60))
     exportar_json(top, carpeta / f"veleros-{fecha}.json")
-    ruta = generar(res, top, cfg, carpeta, fecha)
+    ruta = generar(res, top, cfg, carpeta, fecha, casi)
     print(f"\nInforme: {ruta}")
     for p, lista in top.items():
         print(f"  {p}: {len(lista)} ofertas" + (f" · mejor: {lista[0].titulo_es or lista[0].titulo} ({lista[0].precio:.0f} €, {lista[0].puntuacion:.0f} pts)" if lista else ""))
+    n_casi = sum(len(v) for v in casi.values())
+    if n_casi:
+        print(f"  Casi (fuera de límites por poco): {n_casi}")
+    print(f"  Descartados: {sum(res.descartes.values())} (detalle en descartados-{fecha}.csv)")
     print("  Portales: " + ", ".join(f"{n}={e['encontrados']}{'' if e['estado'] == 'ok' else ' (' + e['estado'][:40] + ')'}" for n, e in res.por_portal.items()))
     if abrir:
         webbrowser.open(ruta.as_uri())
@@ -85,7 +91,7 @@ def cmd_demo(args, cfg):
     fecha = dt.date.today().isoformat()
     # fotos locales de la demo: rutas relativas al informe
     res = ejecutar(cfg, BASE, anuncios_entrada=anuncios, hoy=fecha)
-    for a in res.analizados:
+    for a in res.analizados + res.casi:
         a.fotos_locales, a.fotos = list(a.fotos), a.fotos
     _informe(cfg, res, BASE, fecha, args.abrir)
 

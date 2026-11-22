@@ -25,6 +25,13 @@ filtros:
                      alquiler, verhuur, "plaza de amarre", "amarre en venta", "ligplaats te koop", "anneau à vendre",
                      maqueta, maquette, modelbouw, "radio control", optimist, laser, "hobie cat"]
 
+casi:                        # sección "Casi": anuncios fuera de sus límites por poco (negociables)
+  activar: true
+  precio_max: 12000          # hasta este precio (sus límites siguen siendo los de "filtros")
+  eslora_min: 6.5
+  eslora_max: 10.5
+  n_por_pais: 5
+
 informe:
   n_mejores: 15              # mejores ofertas por país
   carpeta: informes

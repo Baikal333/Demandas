@@ -200,7 +200,26 @@ def test_demo_completa(tmp_path):
         assert [a.puntuacion for a in lista] == sorted((a.puntuacion for a in lista), reverse=True)
         for a in lista:
             assert 7 <= a.eslora_m <= 10 and a.precio <= 10000
-    assert sum(res.descartes.values()) == 5
+    assert sum(res.descartes.values()) == 6
+    assert [a.id_sitio for a in res.casi] == ["demo-fr-7"]               # 11.500 €: zona "casi"
+    assert "por poco" in res.casi[0].avisos[0]
+    assert len(res.descartados) == 6 and sum(1 for d in res.descartados if d["zona_casi"]) == 1
+
+
+def test_csv_descartados(tmp_path):
+    from veleros.procesar import Resultado, exportar_descartados
+    res = Resultado()
+    res.descartados.append({"pais": "ES", "portal": "x", "motivo": "precio superior a 10.000 €", "zona_casi": "", "titulo": "Velero; bonito",
+                            "precio": 14500.0, "eslora_m": 8.5, "anio": 1999, "ce": "si", "url": "https://x/1"})
+    exportar_descartados(res, tmp_path / "d.csv")
+    texto = (tmp_path / "d.csv").read_text("utf-8-sig")
+    assert texto.splitlines()[0].startswith("pais;portal;motivo") and "14500,0;8,5;1999" in texto and '"Velero; bonito"' in texto
+
+
+def test_mastil_no_es_eslora():
+    assert parsing.parse_eslora("Velero con mástil de 11 m, muy cuidado") is None
+    assert parsing.parse_eslora("Velero de 8,5 m con mástil de 11 m") == 8.5
+    assert parsing.parse_eslora("calado 1,6 m, barco de 7,8 m") == 7.8
 
 
 def test_ia_simulada(tmp_path, monkeypatch):

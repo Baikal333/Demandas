@@ -19,16 +19,18 @@ def eur(v) -> str:
     return f"{v:,.0f} €".replace(",", ".")
 
 
-def generar(res: Resultado, top: dict, cfg: dict, carpeta: Path, fecha: str) -> Path:
+def generar(res: Resultado, top: dict, cfg: dict, carpeta: Path, fecha: str, casi: dict | None = None) -> Path:
     env = Environment(loader=FileSystemLoader(Path(__file__).parent / "plantillas"), autoescape=select_autoescape(["html"]))
     d = dt.date.fromisoformat(fecha)
     # rutas de fotos locales relativas a la carpeta del informe
-    for lista in top.values():
+    casi = casi or {p: [] for p in PAISES}
+    for lista in list(top.values()) + list(casi.values()):
         for a in lista:
             a.fotos_locales = [os.path.relpath(p, carpeta) for p in a.fotos_locales]
     html = env.get_template("informe.html").render(
         fecha=fecha, fecha_larga=f"{d.day} de {_MESES[d.month - 1]} de {d.year}", f=cfg["filtros"], top=top, paises=PAISES,
         eur=eur, bandera=lambda p: _BANDERAS.get(p, ""), destino=cfg["costes"].get("destino", {}).get("nombre", ""),
+        casi=casi, casi_cfg=cfg.get("casi", {}), csv_descartados=f"descartados-{fecha}.csv",
         total_analizados=len(res.analizados), total_vistos=len(res.analizados) + sum(res.descartes.values()),
         portales=res.por_portal, descartes=res.descartes, generado=dt.datetime.now().strftime("%d/%m/%Y %H:%M"),
     )

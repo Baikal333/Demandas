@@ -70,6 +70,12 @@ _RE_ESLORA_ETIQ_M = re.compile(_ETIQ_ESLORA + r"\s*[:=\-]?\s*(?:\(m\)\s*)?([0-9]
 _RE_ESLORA_ETIQ_FT = re.compile(_ETIQ_ESLORA + r"\s*[:=\-]?\s*([0-9]{2}(?:[.,][0-9])?)\s*(?:ft|feet|pies|'|pieds|voet)", re.I)
 _RE_M = re.compile(r"\b([0-9]{1,2}[.,][0-9]{1,2}|[0-9]{1,2})\s*(?:m|mt|metros|meters|metres|mètres|meter)\b(?!\s*[²2³3])", re.I)
 _RE_FT = re.compile(r"\b([2-4][0-9](?:[.,][0-9])?)\s*(?:ft|feet|pies|pieds|voet)\b|\b([2-4][0-9])'(?!')", re.I)
+# Medidas que NO son la eslora: "mástil de 11 m", "calado 1,5 m", "amarre de 10 m", "a 5 m del puerto"...
+_NO_ESLORA = re.compile(
+    r"(?:m[aá]stil|palo|guinda|altura|calado|manga|amarre|plaza|pantal[aá]n|cadena|fondeo|cabo|botavara|tangón|"
+    r"m[aâ]t|tirant|largeur|hauteur|place\s+de\s+port|anneau|cha[iî]ne|bout|"
+    r"mast|diepgang|breedte|hoogte|ligplaats|ketting|"
+    r"draft|beam|height|berth|mooring|chain)[^.,;\n\d]{0,20}$", re.I)
 _RE_DIM = re.compile(r"\b([0-9]{1,2}[.,][0-9]{1,2})\s*[x×]\s*([0-9][.,][0-9]{1,2})\s*m?\b", re.I)
 
 
@@ -91,6 +97,9 @@ def parse_eslora(texto: str) -> float | None:
         if v and 3 <= v <= 30:
             return round(v, 2)
     for m in _RE_M.finditer(texto):
+        previo = texto[max(0, m.start() - 30):m.start()]
+        if _NO_ESLORA.search(previo):
+            continue
         v = _num(m.group(1))
         if v and 4 <= v <= 20:
             return round(v, 2)
